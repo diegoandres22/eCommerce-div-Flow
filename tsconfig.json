@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "lib": ["dom", "dom.iterable", "esnext"],
     "types": ["jest", "@jest/globals"],
     "allowJs": true,
@@ -13,13 +14,11 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "downlevelIteration": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@/components/*": ["./components/*"],
