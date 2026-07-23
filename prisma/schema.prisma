@@ -5,29 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-enum UserRole {
-  USER
-  ADMIN
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  REFUNDED
-}
-
-enum ProductStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -36,7 +15,7 @@ model User {
   name          String?
   image         String?
   password      String?
-  role          UserRole  @default(USER)
+  role          String    @default("USER")
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -57,12 +36,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -114,31 +93,31 @@ model Category {
 }
 
 model Product {
-  id          String        @id @default(cuid())
-  name        String
-  slug        String        @unique
-  description String?
-  content     String?       @db.Text
-  price       Decimal       @db.Decimal(10, 2)
-  comparePrice Decimal?     @db.Decimal(10, 2)
-  costPrice   Decimal?      @db.Decimal(10, 2)
-  trackQuantity Boolean     @default(true)
-  status      ProductStatus @default(DRAFT)
-  weight      Decimal?      @db.Decimal(8, 2)
-  sku         String?       @unique
-  barcode     String?
-  tags        String[]
-  seoTitle    String?
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  description   String?
+  content       String?
+  price         Decimal       
+  comparePrice  Decimal?     
+  costPrice     Decimal?      
+  trackQuantity Boolean       @default(true)
+  status        String        @default("DRAFT")
+  weight        Decimal?      
+  sku           String?       @unique
+  barcode       String?
+  tags          String
+  seoTitle      String?
   seoDescription String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   // Relations
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
   images     ProductImage[]
   variants   ProductVariant[]
-  inventory  Inventory[]
+  inventory  Inventory?
   orderItems OrderItem[]
   cartItems  CartItem[]
   reviews    Review[]
@@ -163,7 +142,7 @@ model ProductVariant {
   id        String   @id @default(cuid())
   name      String
   value     String
-  price     Decimal? @db.Decimal(10, 2)
+  price     Decimal? 
   position  Int      @default(0)
   productId String
   createdAt DateTime @default(now())
@@ -206,12 +185,12 @@ model CartItem {
 model Order {
   id            String      @id @default(cuid())
   orderNumber   String      @unique
-  status        OrderStatus @default(PENDING)
-  subtotal      Decimal     @db.Decimal(10, 2)
-  tax           Decimal     @default(0) @db.Decimal(10, 2)
-  shipping      Decimal     @default(0) @db.Decimal(10, 2)
-  discount      Decimal     @default(0) @db.Decimal(10, 2)
-  total         Decimal     @db.Decimal(10, 2)
+  status        String      @default("PENDING")
+  subtotal      Decimal     
+  tax           Decimal     @default(0) 
+  shipping      Decimal     @default(0) 
+  discount      Decimal     @default(0) 
+  total         Decimal     
   currency      String      @default("USD")
   
   // Customer Info
@@ -277,7 +256,7 @@ model Cart {
 model OrderItem {
   id          String  @id @default(cuid())
   quantity    Int
-  price       Decimal @db.Decimal(10, 2)
+  price       Decimal 
   productName String
   productSku  String?
   orderId     String
@@ -292,7 +271,7 @@ model OrderItem {
 
 model Review {
   id        String   @id @default(cuid())
-  rating    Int      @default(5) // 1-5 stars
+  rating    Int      @default(5) 
   title     String?
   content   String?
   verified  Boolean  @default(false)
