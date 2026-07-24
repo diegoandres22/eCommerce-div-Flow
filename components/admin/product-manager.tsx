@@ -4,7 +4,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Category, Product } from '@prisma/client';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
+import { CloudinaryUploadButton } from '@/components/admin/cloudinary-upload-button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,13 +36,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type ProductWithCategory = Product & { category: { id: string; name: string } };
+type ProductWithCategory = Product & {
+  category: { id: string; name: string };
+  subCategory: { id: string; name: string } | null;
+};
 
 const emptyForm = {
   name: '',
   description: '',
   price: '',
   categoryId: '',
+  subCategoryId: '',
   images: '',
   campoTexto1: '',
   campoNumero2: '',
@@ -57,6 +62,7 @@ export function ProductManager({
   categories: Category[];
 }) {
   const [products, setProducts] = useState(initialProducts);
+  const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<ProductWithCategory | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +72,22 @@ export function ProductManager({
   );
   const { toast } = useToast();
   const router = useRouter();
+
+  // Subcategorías disponibles para la categoría elegida en el formulario.
+  const subCategoryOptions = categories.filter(
+    c => c.parentId === form.categoryId
+  );
+
+  // Filtro en vivo de la tabla por nombre o categoría/subcategoría.
+  const query = search.trim().toLowerCase();
+  const filteredProducts = query
+    ? products.filter(
+        p =>
+          p.name.toLowerCase().includes(query) ||
+          p.category.name.toLowerCase().includes(query) ||
+          p.subCategory?.name.toLowerCase().includes(query)
+      )
+    : products;
 
   const resetForm = () => {
     setEditing(null);
@@ -80,6 +102,7 @@ export function ProductManager({
       description: product.description || '',
       price: String(product.price),
       categoryId: product.categoryId,
+      subCategoryId: product.subCategoryId || '',
       images: product.images.join('\n'),
       campoTexto1: product.campoTexto1,
       campoNumero2: String(product.campoNumero2),
@@ -98,6 +121,7 @@ export function ProductManager({
         description: form.description || undefined,
         price: parseFloat(form.price),
         categoryId: form.categoryId,
+        subCategoryId: form.subCategoryId || null,
         images: form.images
           .split('\n')
           .map(url => url.trim())
@@ -203,7 +227,7 @@ export function ProductManager({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="price">Precio</Label>
               <Input
@@ -221,24 +245,66 @@ export function ProductManager({
               <Label>Categoría</Label>
               <Select
                 value={form.categoryId}
-                onValueChange={value => setForm({ ...form, categoryId: value })}
+                onValueChange={value =>
+                  setForm({ ...form, categoryId: value, subCategoryId: '' })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Elige una categoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
+                  {categories
+                    .filter(category => !category.parentId)
+                    .map(category => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="images">Imágenes (una URL de Cloudinary por línea)</Label>
+            <Label>Subcategoría (opcional)</Label>
+            <Select
+              value={form.subCategoryId || 'none'}
+              onValueChange={value =>
+                setForm({ ...form, subCategoryId: value === 'none' ? '' : value })
+              }
+              disabled={!form.categoryId || subCategoryOptions.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Ninguna" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ninguna</SelectItem>
+                {subCategoryOptions.map(option => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.categoryId && subCategoryOptions.length === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Esta categoría no tiene subcategorías todavía.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <Label htmlFor="images">Imágenes (una URL de Cloudinary por línea)</Label>
+              <CloudinaryUploadButton
+                onUploaded={urls =>
+                  setForm(prev => ({
+                    ...prev,
+                    images: [prev.images, ...urls].filter(Boolean).join('\n'),
+                  }))
+                }
+              />
+            </div>
             <textarea
               id="images"
               className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -246,9 +312,12 @@ export function ProductManager({
               onChange={e => setForm({ ...form, images: e.target.value })}
               placeholder={'https://res.cloudinary.com/...\nhttps://res.cloudinary.com/...'}
             />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sube desde el dispositivo con el botón, o pega URLs manualmente.
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="campoTexto1">campoTexto1</Label>
               <Input
@@ -301,28 +370,44 @@ export function ProductManager({
         </form>
       )}
 
+      <div className="relative max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nombre o categoría..."
+          className="pl-9"
+        />
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Nombre</TableHead>
             <TableHead>Categoría</TableHead>
+            <TableHead>Subcategoría</TableHead>
             <TableHead>Precio</TableHead>
             <TableHead>Activo</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.length === 0 && (
+          {filteredProducts.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground">
-                Sin productos todavía.
+              <TableCell colSpan={6} className="text-center text-muted-foreground">
+                {products.length === 0
+                  ? 'Sin productos todavía.'
+                  : 'Ningún producto coincide con tu búsqueda.'}
               </TableCell>
             </TableRow>
           )}
-          {products.map(product => (
+          {filteredProducts.map(product => (
             <TableRow key={product.id}>
               <TableCell>{product.name}</TableCell>
               <TableCell>{product.category.name}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {product.subCategory?.name || '—'}
+              </TableCell>
               <TableCell>${Number(product.price).toFixed(2)}</TableCell>
               <TableCell>{product.isActive ? 'Sí' : 'No'}</TableCell>
               <TableCell className="flex justify-end gap-2">

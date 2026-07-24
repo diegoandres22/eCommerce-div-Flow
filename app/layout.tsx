@@ -1,11 +1,15 @@
 // File: app/layout.tsx
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import NextTopLoader from 'nextjs-toploader';
 import '@/styles/globals.css';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { WhatsAppFloatButton } from '@/components/whatsapp-float-button';
+import { SiteChrome } from '@/components/site-chrome';
 import { CartProvider } from '@/components/cart-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,7 +20,7 @@ export const metadata: Metadata = {
     default: 'NextJS E-commerce Store',
     template: '%s | NextJS E-commerce',
   },
-  description: 'Modern e-commerce store built with Next.js, Prisma, and Stripe',
+  description: 'Modern e-commerce store built with Next.js and Prisma',
   keywords: ['ecommerce', 'nextjs', 'store', 'shopping'],
   authors: [{ name: 'NextJS E-commerce' }],
   creator: 'NextJS E-commerce',
@@ -58,14 +62,21 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <CartProvider>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-          <Toaster />
-        </CartProvider>
+        <NextTopLoader color="hsl(var(--primary))" showSpinner={false} height={3} />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <CartProvider>
+            <div className="flex min-h-screen flex-col">
+              <SiteChrome
+                header={<Header />}
+                footer={<Footer />}
+                whatsappButton={<WhatsAppFloatButton />}
+              >
+                {children}
+              </SiteChrome>
+            </div>
+            <Toaster />
+          </CartProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

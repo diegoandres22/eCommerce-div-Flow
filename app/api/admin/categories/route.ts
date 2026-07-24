@@ -34,6 +34,20 @@ export async function POST(req: Request) {
     );
   }
 
+  // Solo un nivel de anidamiento: el padre elegido no puede ser a su vez
+  // una subcategoría.
+  if (parsed.data.parentId) {
+    const parent = await prisma.category.findUnique({
+      where: { id: parsed.data.parentId },
+    });
+    if (!parent || parent.parentId) {
+      return NextResponse.json(
+        { error: 'La categoría padre no es válida (no puede ser una subcategoría)' },
+        { status: 400 }
+      );
+    }
+  }
+
   const category = await prisma.category.create({ data: parsed.data });
   return NextResponse.json(category, { status: 201 });
 }

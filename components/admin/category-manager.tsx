@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableHeader,
   TableBody,
@@ -45,7 +52,14 @@ export function CategoryManager({
   const [editing, setEditing] = useState<Category | null>(null);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [parentId, setParentId] = useState<string>('');
   const [slugTouched, setSlugTouched] = useState(false);
+
+  // Solo categorías principales pueden ser "padre" (un solo nivel de
+  // anidamiento), y una categoría no puede ser padre de sí misma.
+  const parentOptions = categories.filter(
+    c => !c.parentId && c.id !== editing?.id
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
@@ -56,6 +70,7 @@ export function CategoryManager({
     setEditing(null);
     setName('');
     setSlug('');
+    setParentId('');
     setSlugTouched(false);
     setShowForm(false);
   };
@@ -64,6 +79,7 @@ export function CategoryManager({
     setEditing(category);
     setName(category.name);
     setSlug(category.slug);
+    setParentId(category.parentId || '');
     setSlugTouched(true);
     setShowForm(true);
   };
@@ -83,7 +99,7 @@ export function CategoryManager({
       const res = await fetch(url, {
         method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, slug }),
+        body: JSON.stringify({ name, slug, parentId: parentId || null }),
       });
       const data = await res.json();
 
@@ -168,6 +184,25 @@ export function CategoryManager({
               required
             />
           </div>
+          <div>
+            <Label>Categoría padre (opcional)</Label>
+            <Select
+              value={parentId || 'none'}
+              onValueChange={value => setParentId(value === 'none' ? '' : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Ninguna (categoría principal)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ninguna (categoría principal)</SelectItem>
+                {parentOptions.map(option => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={isSubmitting}>
               {editing ? 'Guardar cambios' : 'Crear'}
@@ -184,6 +219,7 @@ export function CategoryManager({
           <TableRow>
             <TableHead>Nombre</TableHead>
             <TableHead>Slug</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -191,7 +227,7 @@ export function CategoryManager({
           {categories.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={3}
+                colSpan={4}
                 className="text-center text-muted-foreground"
               >
                 Sin categorías todavía.
@@ -202,6 +238,11 @@ export function CategoryManager({
             <TableRow key={category.id}>
               <TableCell>{category.name}</TableCell>
               <TableCell>{category.slug}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {category.parentId
+                  ? `Sub de ${categories.find(c => c.id === category.parentId)?.name || '—'}`
+                  : 'Principal'}
+              </TableCell>
               <TableCell className="flex justify-end gap-2">
                 <Button
                   size="icon"

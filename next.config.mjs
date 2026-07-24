@@ -1,15 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['@prisma/client', 'bcrypt'],
+  serverExternalPackages: ['@prisma/client'],
   images: {
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    remotePatterns: [{
+    remotePatterns: [
+      {
         protocol: 'https',
-        hostname: '**', // 👈 ¡Permite absolutamente todos los sitios de internet!
-      },  ],
+        hostname: 'res.cloudinary.com',
+      },
+    ],
   },
   async rewrites() {
     return [

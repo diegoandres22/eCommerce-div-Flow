@@ -1,78 +1,34 @@
 // File: app/sitemap.ts
 import { MetadataRoute } from 'next';
-import { getAllProducts } from '@/server/queries/products';
+import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Get all products for dynamic routes
-  const products = await getAllProducts();
+  const [products, categories] = await Promise.all([
+    prisma.product.findMany({ where: { isActive: true } }),
+    prisma.category.findMany(),
+  ]);
 
-  // Static routes
   const staticRoutes = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/products`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/search`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/cart`,
-      lastModified: new Date(),
-      changeFrequency: 'always' as const,
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/profile`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.4,
-    },
+    { url: baseUrl, lastModified: new Date(), priority: 1 },
+    { url: `${baseUrl}/products`, lastModified: new Date(), priority: 0.8 },
+    { url: `${baseUrl}/search`, lastModified: new Date(), priority: 0.5 },
   ];
 
-  // Product routes
   const productRoutes = products.map(product => ({
-    url: `${baseUrl}/products/${product.slug}`,
-    lastModified: new Date(product.updatedAt),
-    changeFrequency: 'weekly' as const,
+    url: `${baseUrl}/products/${product.id}`,
+    lastModified: product.updatedAt,
     priority: 0.7,
   }));
 
-  // Category routes (you might want to fetch these dynamically too)
-  const categoryRoutes = [
-    {
-      url: `${baseUrl}/category/electronics`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/category/clothing`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/category/books`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-  ];
+  const categoryRoutes = categories.map(category => ({
+    url: `${baseUrl}/category/${category.slug}`,
+    lastModified: category.updatedAt,
+    priority: 0.6,
+  }));
 
   return [...staticRoutes, ...productRoutes, ...categoryRoutes];
 }

@@ -2,30 +2,25 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface CartItem {
+export interface CartProduct {
   id: string;
+  name: string;
+  price: number;
+  images: string[];
+}
+
+export interface CartItem {
   productId: string;
   quantity: number;
-  price: number;
-  product: {
-    id: string;
-    name: string;
-    slug: string;
-    sku: string;
-    price: number;
-    stock: number;
-    images: Array<{ url: string }>;
-  };
+  product: CartProduct;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  updateItem: (id: string, quantity: number) => void;
+  addItem: (product: CartProduct, quantity?: number) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  total: number;
   totalAmount: number;
   totalItems: number;
 }
@@ -37,51 +32,55 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Load cart from localStorage
     const saved = localStorage.getItem('cart');
     if (saved) {
-      setItems(JSON.parse(saved));
+      try {
+        setItems(JSON.parse(saved));
+      } catch {
+        // localStorage corrupto o de una versión vieja del carrito: ignorar.
+      }
     }
     setIsLoaded(true);
   }, []);
 
   useEffect(() => {
-    // Save cart to localStorage
     if (isLoaded) {
       localStorage.setItem('cart', JSON.stringify(items));
     }
   }, [items, isLoaded]);
 
-  const addItem = (item: CartItem) => {
+  const addItem = (product: CartProduct, quantity = 1) => {
     setItems(prev => {
-      const existing = prev.find(i => i.productId === item.productId);
+      const existing = prev.find(i => i.productId === product.id);
       if (existing) {
         return prev.map(i =>
-          i.productId === item.productId
-            ? { ...i, quantity: i.quantity + item.quantity }
+          i.productId === product.id
+            ? { ...i, quantity: i.quantity + quantity }
             : i
         );
       }
-      return [...prev, item];
+      return [...prev, { productId: product.id, quantity, product }];
     });
   };
 
-  const removeItem = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
+  const removeItem = (productId: string) => {
+    setItems(prev => prev.filter(i => i.productId !== productId));
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
-    setItems(prev => prev.map(i => (i.id === id ? { ...i, quantity } : i)));
+  const updateQuantity = (productId: string, quantity: number) => {
+    if (quantity < 1) return;
+    setItems(prev =>
+      prev.map(i => (i.productId === productId ? { ...i, quantity } : i))
+    );
   };
 
-  const clearCart = () => {
-    setItems([]);
-  };
+  const clearCart = () => setItems([]);
 
-  const total = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+  const totalAmount = items.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
     0
   );
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <CartContext.Provider
@@ -90,11 +89,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addItem,
         removeItem,
         updateQuantity,
-        updateItem: updateQuantity,
         clearCart,
-        total,
-        totalAmount: total,
-        totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
+        totalAmount,
+        totalItems,
       }}
     >
       {children}

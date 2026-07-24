@@ -1,16 +1,10 @@
 // File: app/admin/layout.tsx
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/roles';
-import { AdminNav } from '@/components/admin-nav';
-import { Button } from '@/components/ui/button';
-import {
-  LayoutDashboard,
-  Package,
-  FolderTree,
-  Settings,
-  LogOut,
-} from 'lucide-react';
+import { AdminSidebarNav } from '@/components/admin/admin-sidebar-nav';
+import { AdminMobileNav } from '@/components/admin/admin-mobile-nav';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { LogoutButton } from '@/components/logout-button';
 
 export default async function AdminLayout({
   children,
@@ -20,72 +14,46 @@ export default async function AdminLayout({
   const user = await requireAdmin();
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar (desktop) */}
+      <aside className="hidden w-64 flex-col border-r bg-card lg:flex">
         <div className="p-6">
-          <Link href="/admin" className="text-xl font-bold text-gray-900">
+          <Link href="/admin" className="text-xl font-bold">
             Admin Panel
           </Link>
         </div>
 
-        <nav className="mt-6">
-          <div className="space-y-1 px-3">
-            <Link
-              href="/admin"
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              <LayoutDashboard className="mr-3 h-4 w-4" />
-              Dashboard
-            </Link>
+        <div className="flex-1">
+          <AdminSidebarNav />
+        </div>
 
-            <Link
-              href="/admin/products"
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              <Package className="mr-3 h-4 w-4" />
-              Products
-            </Link>
-
-            <Link
-              href="/admin/categories"
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              <FolderTree className="mr-3 h-4 w-4" />
-              Categories
-            </Link>
-
-            {/* Settings/whatsappNumber (Paso 5) se agrega aquí cuando exista. */}
-          </div>
-        </nav>
-
-        <div className="absolute bottom-0 w-64 p-4">
+        <div className="border-t p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-700">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">
                 {user.name || 'Admin'}
               </p>
-              <p className="text-xs text-gray-500">{user.email}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </p>
             </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/api/auth/signout">
-                <LogOut className="h-4 w-4" />
-              </Link>
-            </Button>
+            <LogoutButton iconOnly />
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="border-b bg-white shadow-sm">
-          <div className="px-6 py-4">
-            <AdminNav />
+        <header className="flex items-center justify-between border-b bg-card px-4 py-3 lg:px-6">
+          <div className="flex items-center gap-2">
+            <AdminMobileNav />
+            <span className="font-semibold lg:hidden">Admin Panel</span>
           </div>
+          <ThemeToggle />
         </header>
 
         <main className="flex-1 overflow-auto">
-          <div className="p-6">{children}</div>
+          <div className="p-4 sm:p-6">{children}</div>
         </main>
       </div>
     </div>

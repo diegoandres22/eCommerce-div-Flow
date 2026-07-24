@@ -1,0 +1,8 @@
+// File: lib/actions/auth-actions.ts
+'use server';
+
+import { signOut } from '@/lib/auth';
+
+export async function signOutAction() {
+  await signOut({ redirectTo: '/' });
+}

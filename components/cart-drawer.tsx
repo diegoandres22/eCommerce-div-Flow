@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -14,146 +14,62 @@ import {
   SheetTrigger,
   SheetFooter,
 } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Minus, Plus, Trash2, X } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { toast } from 'react-hot-toast';
+import { useCart } from '@/components/cart-provider';
 
-// TODO (Paso 6): reemplazar por la lógica real de carrito -> WhatsApp.
-// El server action viejo (@/server/actions/cart) se borró junto con el
-// modelo Cart/CartItem, que no existe en el MVP.
-
-interface CartItem {
-  id: string;
-  quantity: number;
-  product: {
-    id: string;
-    name: string;
-    slug: string;
-    price: number;
-    images: Array<{ url: string; altText?: string | null }>;
-  };
-}
-
-interface CartDrawerProps {
-  trigger?: React.ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}
-
-export function CartDrawer({ trigger, open, onOpenChange }: CartDrawerProps) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+export function CartDrawer() {
   const [isOpen, setIsOpen] = useState(false);
-
-  // Load cart items when drawer opens
-  useEffect(() => {
-    if (isOpen) {
-      loadCartItems();
-    }
-  }, [isOpen]);
-
-  // Handle controlled open state
-  useEffect(() => {
-    if (open !== undefined) {
-      setIsOpen(open);
-    }
-  }, [open]);
-
-  const loadCartItems = async () => {
-    // Placeholder temporal (Paso 6): sin backend de carrito todavía.
-    setIsLoading(false);
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    setIsOpen(newOpen);
-    onOpenChange?.(newOpen);
-  };
-
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    // Placeholder temporal (Paso 6): sin backend de carrito todavía.
-    setCartItems(items =>
-      items.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
-
-  const removeItem = async (itemId: string) => {
-    // Placeholder temporal (Paso 6): sin backend de carrito todavía.
-    setCartItems(items => items.filter(item => item.id !== itemId));
-    toast.success('Item removed from cart');
-  };
-
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  const defaultTrigger = (
-    <Button variant="outline" size="icon" className="relative">
-      <ShoppingCart className="h-4 w-4" />
-      {itemCount > 0 && (
-        <Badge
-          className="absolute -right-2 -top-2 h-5 w-5 rounded-full p-0 text-xs"
-          variant="destructive"
-        >
-          {itemCount > 99 ? '99+' : itemCount}
-        </Badge>
-      )}
-      <span className="sr-only">Open cart</span>
-    </Button>
-  );
+  const { items, updateQuantity, removeItem, totalAmount, totalItems } =
+    useCart();
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>{trigger || defaultTrigger}</SheetTrigger>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="icon" className="relative">
+          <ShoppingCart className="h-4 w-4" />
+          {totalItems > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-destructive-foreground">
+              {totalItems > 99 ? '99+' : totalItems}
+            </span>
+          )}
+          <span className="sr-only">Abrir carrito</span>
+        </Button>
+      </SheetTrigger>
 
       <SheetContent className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            Shopping Cart ({itemCount})
+            Carrito ({totalItems})
           </SheetTitle>
         </SheetHeader>
 
-        {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
-          </div>
-        ) : cartItems.length === 0 ? (
+        {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center space-y-4 text-center">
             <div className="rounded-full bg-muted p-6">
               <ShoppingCart className="h-12 w-12 text-muted-foreground" />
             </div>
             <div className="space-y-2">
-              <h3 className="font-semibold">Your cart is empty</h3>
-              <p className="text-sm text-muted-foreground">
-                Start shopping to add items to your cart
-              </p>
+              <h3 className="font-semibold">Tu carrito está vacío</h3>
             </div>
             <Button asChild>
-              <Link href="/products" onClick={() => handleOpenChange(false)}>
-                Continue Shopping
+              <Link href="/products" onClick={() => setIsOpen(false)}>
+                Ver productos
               </Link>
             </Button>
           </div>
         ) : (
           <>
             <div className="flex-1 space-y-4 overflow-y-auto py-4">
-              {cartItems.map(item => (
+              {items.map(item => (
                 <div
-                  key={item.id}
+                  key={item.productId}
                   className="flex items-center space-x-4 rounded-lg border p-4"
                 >
-                  <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-muted">
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                     <Image
-                      src={
-                        item.product.images[0]?.url ||
-                        '/images/product-sample.svg'
-                      }
+                      src={item.product.images[0] || '/images/placeholder.svg'}
                       alt={item.product.name}
                       fill
                       className="object-cover"
@@ -163,8 +79,8 @@ export function CartDrawer({ trigger, open, onOpenChange }: CartDrawerProps) {
 
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/products/${item.product.slug}`}
-                      onClick={() => handleOpenChange(false)}
+                      href={`/products/${item.productId}`}
+                      onClick={() => setIsOpen(false)}
                     >
                       <h4 className="truncate text-sm font-medium transition-colors hover:text-primary">
                         {item.product.name}
@@ -179,23 +95,21 @@ export function CartDrawer({ trigger, open, onOpenChange }: CartDrawerProps) {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.id, item.quantity - 1)
+                          updateQuantity(item.productId, item.quantity - 1)
                         }
                         disabled={item.quantity <= 1}
                         className="h-6 w-6"
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-
                       <span className="min-w-[2rem] text-center text-sm font-medium">
                         {item.quantity}
                       </span>
-
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.id, item.quantity + 1)
+                          updateQuantity(item.productId, item.quantity + 1)
                         }
                         className="h-6 w-6"
                       >
@@ -208,7 +122,7 @@ export function CartDrawer({ trigger, open, onOpenChange }: CartDrawerProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(item.productId)}
                       className="h-6 w-6 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -221,27 +135,16 @@ export function CartDrawer({ trigger, open, onOpenChange }: CartDrawerProps) {
               ))}
             </div>
 
-            <SheetFooter className="flex-col space-y-4 border-t pt-4">
-              <div className="flex items-center justify-between text-lg font-semibold">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(subtotal)}</span>
+            <SheetFooter className="flex-col space-y-4 border-t pt-4 sm:flex-col">
+              <div className="flex w-full items-center justify-between text-lg font-semibold">
+                <span>Total:</span>
+                <span>{formatCurrency(totalAmount)}</span>
               </div>
-
-              <div className="flex flex-col space-y-2">
-                <Button asChild size="lg" className="w-full">
-                  <Link href="/cart" onClick={() => handleOpenChange(false)}>
-                    View Cart
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="w-full">
-                  <Link
-                    href="/checkout"
-                    onClick={() => handleOpenChange(false)}
-                  >
-                    Checkout
-                  </Link>
-                </Button>
-              </div>
+              <Button asChild size="lg" className="w-full">
+                <Link href="/cart" onClick={() => setIsOpen(false)}>
+                  Ver carrito
+                </Link>
+              </Button>
             </SheetFooter>
           </>
         )}

@@ -8,21 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Minus, Plus, ShoppingCart, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useCart, type CartProduct } from '@/components/cart-provider';
 import type { ButtonProps } from '@/components/ui/button';
 
-// TODO (Paso 6): reemplazar por la lógica real de carrito -> WhatsApp.
-// El server action viejo (@/server/actions/cart) se borró junto con el
-// modelo Cart/CartItem, que no existe en el MVP.
-
 interface AddToCartProps extends Omit<ButtonProps, 'onClick'> {
-  productId: string;
+  product: CartProduct;
   maxQuantity?: number;
   showQuantitySelector?: boolean;
   onAddToCart?: () => void;
 }
 
 export function AddToCart({
-  productId,
+  product,
   maxQuantity = 10,
   showQuantitySelector = false,
   onAddToCart,
@@ -30,8 +27,8 @@ export function AddToCart({
   children,
   ...props
 }: AddToCartProps) {
+  const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
 
   const handleQuantityChange = (newQuantity: number) => {
@@ -40,25 +37,19 @@ export function AddToCart({
     }
   };
 
-  const handleAddToCart = async () => {
-    setIsLoading(true);
-    try {
-      // Placeholder temporal: el carrito real (con botón de WhatsApp)
-      // se construye en el Paso 6.
-      toast('Carrito en construcción (Paso 6)');
-      setIsAdded(true);
-      onAddToCart?.();
-      setTimeout(() => setIsAdded(false), 2000);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleAddToCart = () => {
+    addItem(product, quantity);
+    toast.success(`${product.name} agregado al carrito`);
+    setIsAdded(true);
+    onAddToCart?.();
+    setTimeout(() => setIsAdded(false), 2000);
   };
 
   if (showQuantitySelector) {
     return (
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="quantity">Quantity</Label>
+          <Label htmlFor="quantity">Cantidad</Label>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -91,31 +82,23 @@ export function AddToCart({
               <Plus className="h-3 w-3" />
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {maxQuantity > 0 ? `${maxQuantity} available` : 'Out of stock'}
-          </p>
         </div>
 
         <Button
           onClick={handleAddToCart}
-          disabled={disabled || isLoading || maxQuantity <= 0}
+          disabled={disabled}
           className="w-full"
           {...props}
         >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Adding to Cart...
-            </div>
-          ) : isAdded ? (
+          {isAdded ? (
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4" />
-              Added to Cart
+              Agregado
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
-              Add to Cart
+              Agregar al carrito
             </div>
           )}
         </Button>
@@ -124,48 +107,18 @@ export function AddToCart({
   }
 
   return (
-    <Button
-      onClick={handleAddToCart}
-      disabled={disabled || isLoading || maxQuantity <= 0}
-      {...props}
-    >
-      {isLoading ? (
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          {props.size === 'sm' ? 'Adding...' : 'Adding to Cart...'}
-        </div>
-      ) : isAdded ? (
+    <Button onClick={handleAddToCart} disabled={disabled} {...props}>
+      {isAdded ? (
         <div className="flex items-center gap-2">
           <Check className="h-4 w-4" />
-          {props.size === 'sm' ? 'Added' : 'Added to Cart'}
+          {props.size === 'sm' ? 'Agregado' : 'Agregado al carrito'}
         </div>
       ) : (
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-4 w-4" />
-          {children || (props.size === 'sm' ? 'Add to Cart' : 'Add to Cart')}
+          {children || 'Agregar'}
         </div>
       )}
     </Button>
-  );
-}
-
-// Quick add to cart button (minimal version)
-export function QuickAddToCart({
-  productId,
-  className,
-}: {
-  productId: string;
-  className?: string;
-}) {
-  return (
-    <AddToCart
-      productId={productId}
-      size="icon"
-      variant="secondary"
-      className={className}
-    >
-      <ShoppingCart className="h-4 w-4" />
-      <span className="sr-only">Add to cart</span>
-    </AddToCart>
   );
 }

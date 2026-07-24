@@ -17,6 +17,33 @@ export async function PATCH(
     );
   }
 
+  if (parsed.data.parentId) {
+    if (parsed.data.parentId === params.id) {
+      return NextResponse.json(
+        { error: 'Una categoría no puede ser su propia subcategoría' },
+        { status: 400 }
+      );
+    }
+    const parent = await prisma.category.findUnique({
+      where: { id: parsed.data.parentId },
+    });
+    if (!parent || parent.parentId) {
+      return NextResponse.json(
+        { error: 'La categoría padre no es válida (no puede ser una subcategoría)' },
+        { status: 400 }
+      );
+    }
+    const hasChildren = await prisma.category.count({
+      where: { parentId: params.id },
+    });
+    if (hasChildren > 0) {
+      return NextResponse.json(
+        { error: 'Esta categoría ya tiene subcategorías: no puede convertirse en subcategoría de otra' },
+        { status: 400 }
+      );
+    }
+  }
+
   if (parsed.data.slug || parsed.data.name) {
     const duplicate = await prisma.category.findFirst({
       where: {
@@ -46,13 +73,23 @@ export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const productsCount = await prisma.product.count({
-    where: { categoryId: params.id },
-  });
+  const [productsCount, childrenCount] = await Promise.all([
+    prisma.product.count({
+      where: { OR: [{ categoryId: params.id }, { subCategoryId: params.id }] },
+    }),
+    prisma.category.count({ where: { parentId: params.id } }),
+  ]);
 
   if (productsCount > 0) {
     return NextResponse.json(
       { error: 'No se puede borrar: tiene productos asociados' },
+      { status: 409 }
+    );
+  }
+
+  if (childrenCount > 0) {
+    return NextResponse.json(
+      { error: 'No se puede borrar: tiene subcategorías asociadas' },
       { status: 409 }
     );
   }

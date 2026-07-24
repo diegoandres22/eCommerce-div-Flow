@@ -76,7 +76,14 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  products Product[]
+  // Autorreferencia opcional: una categoría sin parentId es "principal";
+  // con parentId es subcategoría de otra. Un solo nivel de anidamiento.
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  products    Product[] @relation("ProductCategory")
+  subProducts Product[] @relation("ProductSubCategory")
 
   @@map("categories")
 }
@@ -92,12 +99,18 @@ model Product {
   campoNumero2      Float
   campoTextoGeneral String
 
+  views     Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category @relation("ProductCategory", fields: [categoryId], references: [id])
+
+  // Subcategoría opcional (debe ser hija de `category` cuando se define;
+  // esa consistencia se valida en la API, no a nivel de base de datos).
+  subCategoryId String?
+  subCategory   Category? @relation("ProductSubCategory", fields: [subCategoryId], references: [id])
 
   @@map("products")
 }
@@ -109,4 +122,20 @@ model ConfiguracionTienda {
   whatsappNumber String
 
   @@map("configuracion_tienda")
+}
+
+// --- Banners del carrusel principal (home) ---
+
+model Banner {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  title     String?
+  subtitle  String?
+  linkUrl   String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("banners")
 }

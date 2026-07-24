@@ -9,6 +9,9 @@ export const categorySchema = z.object({
     .min(1, 'El slug es obligatorio')
     .max(100)
     .regex(/^[a-z0-9-]+$/, 'Solo minúsculas, números y guiones'),
+  // Opcional: si se define, esta categoría pasa a ser subcategoría de otra
+  // (un solo nivel de anidamiento, validado en la API).
+  parentId: z.string().nullable().optional(),
 });
 
 // Product schema (tal como el modelo Product del MVP: sin SKU, sin
@@ -18,11 +21,35 @@ export const productSchema = z.object({
   description: z.string().optional(),
   price: z.number().min(0.01, 'El precio debe ser mayor a 0'),
   categoryId: z.string().min(1, 'La categoría es obligatoria'),
+  // Opcional: debe ser hija directa de categoryId (se valida en la API).
+  subCategoryId: z.string().nullable().optional(),
   images: z.array(z.string().url('Debe ser una URL válida')).default([]),
   campoTexto1: z.string().min(1, 'campoTexto1 es obligatorio'),
   campoNumero2: z.number(),
   campoTextoGeneral: z.string().min(1, 'campoTextoGeneral es obligatorio'),
   isActive: z.boolean().default(true),
+});
+
+// Banner del carrusel principal (home). imageUrl es una URL de Cloudinary,
+// igual que las imágenes de producto. title/subtitle/linkUrl son opcionales.
+export const bannerSchema = z.object({
+  imageUrl: z.string().url('Debe ser una URL válida'),
+  title: z.string().max(150).optional().or(z.literal('')),
+  subtitle: z.string().max(255).optional().or(z.literal('')),
+  linkUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
+  order: z.number().int().default(0),
+  isActive: z.boolean().default(true),
+});
+
+// Formulario público de asesoría/contacto.
+export const contactSchema = z.object({
+  name: z.string().min(1, 'El nombre es obligatorio').max(100),
+  email: z.string().email('Email inválido'),
+  phone: z.string().max(20).optional().or(z.literal('')),
+  message: z
+    .string()
+    .min(10, 'Cuéntanos un poco más (mínimo 10 caracteres)')
+    .max(2000),
 });
 
 // Configuración de la tienda (singleton: solo debe existir una fila).
