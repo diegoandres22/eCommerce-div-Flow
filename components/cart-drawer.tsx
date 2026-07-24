@@ -18,7 +18,10 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Minus, Plus, Trash2, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import { getCart, updateCartItem, removeFromCart } from '@/server/actions/cart';
+
+// TODO (Paso 6): reemplazar por la lógica real de carrito -> WhatsApp.
+// El server action viejo (@/server/actions/cart) se borró junto con el
+// modelo Cart/CartItem, que no existe en el MVP.
 
 interface CartItem {
   id: string;
@@ -58,17 +61,8 @@ export function CartDrawer({ trigger, open, onOpenChange }: CartDrawerProps) {
   }, [open]);
 
   const loadCartItems = async () => {
-    setIsLoading(true);
-    try {
-      const result = await getCart();
-      if (result.items) {
-        setCartItems(result.items);
-      }
-    } catch (error) {
-      toast.error('Failed to load cart items');
-    } finally {
-      setIsLoading(false);
-    }
+    // Placeholder temporal (Paso 6): sin backend de carrito todavía.
+    setIsLoading(false);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -78,49 +72,18 @@ export function CartDrawer({ trigger, open, onOpenChange }: CartDrawerProps) {
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-
+    // Placeholder temporal (Paso 6): sin backend de carrito todavía.
     setCartItems(items =>
       items.map(item =>
         item.id === itemId ? { ...item, quantity: newQuantity } : item
       )
     );
-
-    try {
-      const formData = new FormData();
-      formData.append('quantity', newQuantity.toString());
-      const result = await updateCartItem(itemId, formData);
-      if (!result.success) {
-        // Revert on error
-        loadCartItems();
-        toast.error(result.error || 'Failed to update quantity');
-      }
-    } catch (error) {
-      loadCartItems();
-      toast.error('Failed to update quantity');
-    }
   };
 
   const removeItem = async (itemId: string) => {
-    const item = cartItems.find(i => i.id === itemId);
-    if (!item) return;
-
+    // Placeholder temporal (Paso 6): sin backend de carrito todavía.
     setCartItems(items => items.filter(item => item.id !== itemId));
-
-    try {
-      const formData = new FormData();
-      formData.append('productId', item.product.id);
-      const result = await removeFromCart(formData);
-      if (!result.success) {
-        // Revert on error
-        loadCartItems();
-        toast.error(result.error || 'Failed to remove item');
-      } else {
-        toast.success('Item removed from cart');
-      }
-    } catch (error) {
-      loadCartItems();
-      toast.error('Failed to remove item');
-    }
+    toast.success('Item removed from cart');
   };
 
   const subtotal = cartItems.reduce(

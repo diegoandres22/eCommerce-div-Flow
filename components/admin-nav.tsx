@@ -12,12 +12,8 @@ const adminNavItems = [
     label: 'Products',
   },
   {
-    href: '/admin/orders',
-    label: 'Orders',
-  },
-  {
-    href: '/admin/inventory',
-    label: 'Inventory',
+    href: '/admin/categories',
+    label: 'Categories',
   },
 ];
 

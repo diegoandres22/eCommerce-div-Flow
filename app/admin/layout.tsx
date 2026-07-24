@@ -4,7 +4,13 @@ import Link from 'next/link';
 import { requireAdmin } from '@/lib/roles';
 import { AdminNav } from '@/components/admin-nav';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Package, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Package,
+  FolderTree,
+  Settings,
+  LogOut,
+} from 'lucide-react';
 
 export default async function AdminLayout({
   children,
@@ -41,8 +47,15 @@ export default async function AdminLayout({
               Products
             </Link>
 
-            {/* Categories (Paso 2) y Settings/whatsappNumber (Paso 5) se
-                agregan aquí cuando esas rutas existan. */}
+            <Link
+              href="/admin/categories"
+              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              <FolderTree className="mr-3 h-4 w-4" />
+              Categories
+            </Link>
+
+            {/* Settings/whatsappNumber (Paso 5) se agrega aquí cuando exista. */}
           </div>
         </nav>
 

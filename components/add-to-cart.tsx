@@ -8,8 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Minus, Plus, ShoppingCart, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { addToCart } from '@/server/actions/cart';
 import type { ButtonProps } from '@/components/ui/button';
+
+// TODO (Paso 6): reemplazar por la lógica real de carrito -> WhatsApp.
+// El server action viejo (@/server/actions/cart) se borró junto con el
+// modelo Cart/CartItem, que no existe en el MVP.
 
 interface AddToCartProps extends Omit<ButtonProps, 'onClick'> {
   productId: string;
@@ -39,28 +42,13 @@ export function AddToCart({
 
   const handleAddToCart = async () => {
     setIsLoading(true);
-
     try {
-      const formData = new FormData();
-      formData.append('productId', productId);
-      formData.append('quantity', quantity.toString());
-
-      const result = await addToCart(formData);
-
-      if (result.success) {
-        toast.success(
-          `Added ${quantity} item${quantity > 1 ? 's' : ''} to cart`
-        );
-        setIsAdded(true);
-        onAddToCart?.();
-
-        // Reset the success state after 2 seconds
-        setTimeout(() => setIsAdded(false), 2000);
-      } else {
-        toast.error(result.error || 'Failed to add item to cart');
-      }
-    } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      // Placeholder temporal: el carrito real (con botón de WhatsApp)
+      // se construye en el Paso 6.
+      toast('Carrito en construcción (Paso 6)');
+      setIsAdded(true);
+      onAddToCart?.();
+      setTimeout(() => setIsAdded(false), 2000);
     } finally {
       setIsLoading(false);
     }

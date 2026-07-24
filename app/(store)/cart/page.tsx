@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils';
-import { updateCartItem, removeFromCart } from '@/server/actions/cart';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -23,46 +22,19 @@ export default function CartPage() {
 
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-
+    // El carrito es 100% cliente (localStorage vía CartProvider) - no
+    // hay backend Cart/CartItem en este MVP.
     setIsUpdating(itemId);
-    try {
-      const formData = new FormData();
-      formData.append('quantity', newQuantity.toString());
-      await updateCartItem(itemId, formData);
-      updateItem(itemId, newQuantity);
-      toast({
-        title: 'Cart updated',
-        description: 'Item quantity has been updated.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update cart item.',
-      });
-    } finally {
-      setIsUpdating(null);
-    }
+    updateItem(itemId, newQuantity);
+    toast({ title: 'Cart updated', description: 'Item quantity has been updated.' });
+    setIsUpdating(null);
   };
 
   const handleRemoveItem = async (itemId: string, productId: string) => {
     setIsUpdating(itemId);
-    try {
-      const formData = new FormData();
-      formData.append('productId', productId);
-      await removeFromCart(formData);
-      removeItem(itemId);
-      toast({
-        title: 'Item removed',
-        description: 'Item has been removed from your cart.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove item from cart.',
-      });
-    } finally {
-      setIsUpdating(null);
-    }
+    removeItem(itemId);
+    toast({ title: 'Item removed', description: 'Item has been removed from your cart.' });
+    setIsUpdating(null);
   };
 
   const handleCheckout = () => {
