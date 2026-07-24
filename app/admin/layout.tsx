@@ -1,19 +1,10 @@
 // File: app/admin/layout.tsx
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 import Link from 'next/link';
-import { authOptions } from '@/lib/auth';
 import { requireAdmin } from '@/lib/roles';
 import { AdminNav } from '@/components/admin-nav';
 import { Button } from '@/components/ui/button';
-import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Users,
-  Settings,
-  LogOut,
-} from 'lucide-react';
+import { LayoutDashboard, Package, LogOut } from 'lucide-react';
 
 export default async function AdminLayout({
   children,
@@ -50,37 +41,8 @@ export default async function AdminLayout({
               Products
             </Link>
 
-            <Link
-              href="/admin/orders"
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              <ShoppingCart className="mr-3 h-4 w-4" />
-              Orders
-            </Link>
-
-            <Link
-              href="/admin/inventory"
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              <Package className="mr-3 h-4 w-4" />
-              Inventory
-            </Link>
-
-            <Link
-              href="/admin/customers"
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              <Users className="mr-3 h-4 w-4" />
-              Customers
-            </Link>
-
-            <Link
-              href="/admin/settings"
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              <Settings className="mr-3 h-4 w-4" />
-              Settings
-            </Link>
+            {/* Categories (Paso 2) y Settings/whatsappNumber (Paso 5) se
+                agregan aquí cuando esas rutas existan. */}
           </div>
         </nav>
 

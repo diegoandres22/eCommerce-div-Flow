@@ -5,27 +5,24 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
+
+// --- Auth.js v5 (estándar PrismaAdapter) ---
 
 model User {
   id            String    @id @default(cuid())
-  email         String    @unique
   name          String?
-  image         String?
-  password      String?
-  role          String    @default("USER")
+  email         String    @unique
   emailVerified DateTime?
+  image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Relations
   accounts Account[]
   sessions Session[]
-  orders   Order[]
-  cart     Cart?
-  reviews   Review[]
 
   @@map("users")
 }
@@ -43,8 +40,6 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -57,8 +52,6 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -74,225 +67,46 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-model Category {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?
-  image       String?
-  parentId    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+// --- Catálogo ---
 
-  // Relations
-  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryParent")
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   products Product[]
 
   @@map("categories")
 }
 
 model Product {
-  id            String        @id @default(cuid())
-  name          String
-  slug          String        @unique
-  description   String?
-  content       String?
-  price         Decimal       
-  comparePrice  Decimal?     
-  costPrice     Decimal?      
-  trackQuantity Boolean       @default(true)
-  status        String        @default("DRAFT")
-  weight        Decimal?      
-  sku           String?       @unique
-  barcode       String?
-  tags          String
-  seoTitle      String?
-  seoDescription String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  images      String[]
 
-  // Relations
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
-  images     ProductImage[]
-  variants   ProductVariant[]
-  inventory  Inventory?
-  orderItems OrderItem[]
-  cartItems  CartItem[]
-  reviews    Review[]
+  campoTexto1       String
+  campoNumero2      Float
+  campoTextoGeneral String
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
 
   @@map("products")
 }
 
-model ProductImage {
-  id        String   @id @default(cuid())
-  url       String
-  altText   String?
-  position  Int      @default(0)
-  productId String
-  createdAt DateTime @default(now())
+// --- Configuración de la Tienda ---
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+model ConfiguracionTienda {
+  id             String @id @default(cuid())
+  whatsappNumber String
 
-  @@map("product_images")
-}
-
-model ProductVariant {
-  id        String   @id @default(cuid())
-  name      String
-  value     String
-  price     Decimal? 
-  position  Int      @default(0)
-  productId String
-  createdAt DateTime @default(now())
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("product_variants")
-}
-
-model Inventory {
-  id        String   @id @default(cuid())
-  quantity  Int      @default(0)
-  reserved  Int      @default(0)
-  available Int      @default(0)
-  productId String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("inventory")
-}
-
-model CartItem {
-  id        String   @id @default(cuid())
-  quantity  Int      @default(1)
-  cartId    String
-  productId String
-  variantId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([cartId, productId, variantId])
-  @@map("cart_items")
-}
-
-model Order {
-  id            String      @id @default(cuid())
-  orderNumber   String      @unique
-  status        String      @default("PENDING")
-  subtotal      Decimal     
-  tax           Decimal     @default(0) 
-  shipping      Decimal     @default(0) 
-  discount      Decimal     @default(0) 
-  total         Decimal     
-  currency      String      @default("USD")
-  
-  // Customer Info
-  customerEmail String
-  customerPhone String?
-  
-  // Shipping Address
-  shippingName    String
-  shippingAddress String
-  shippingCity    String
-  shippingState   String?
-  shippingZip     String
-  shippingCountry String @default("US")
-  
-  // Billing Address
-  billingName     String?
-  billingAddress  String?
-  billingCity     String?
-  billingState    String?
-  billingZip      String?
-  billingCountry  String?
-  
-  // Shipping & Order Details
-  shippingMethod String?
-  notes          String?
-  
-  // Payment Info
-  stripePaymentIntentId String?
-  stripeSessionId       String?
-  paidAt         DateTime?
-  
-  // Tracking
-  trackingNumber String?
-  shippedAt      DateTime?
-  deliveredAt    DateTime?
-  cancelledAt    DateTime?
-  
-  userId    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user       User?       @relation(fields: [userId], references: [id])
-  orderItems OrderItem[]
-
-  @@map("orders")
-}
-
-model Cart {
-  id        String   @id @default(cuid())
-  userId    String?  @unique
-  sessionId String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items CartItem[]
-
-  @@map("carts")
-}
-
-model OrderItem {
-  id          String  @id @default(cuid())
-  quantity    Int
-  price       Decimal 
-  productName String
-  productSku  String?
-  orderId     String
-  productId   String
-  createdAt   DateTime @default(now())
-
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-
-  @@map("order_items")
-}
-
-model Review {
-  id        String   @id @default(cuid())
-  rating    Int      @default(5) 
-  title     String?
-  content   String?
-  verified  Boolean  @default(false)
-  userId    String
-  productId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId])
-  @@map("reviews")
-}
-
-model Newsletter {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("newsletter_subscribers")
+  @@map("configuracion_tienda")
 }
