@@ -1,17 +1,97 @@
 // server/queries/products.ts
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 const withCategory = {
   category: { select: { id: true, name: true, slug: true } },
 } as const;
 
-export async function getActiveProducts(limit?: number) {
-  return prisma.product.findMany({
-    where: { isActive: true },
-    include: withCategory,
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  });
+type ProductWithCategory = Prisma.ProductGetPayload<{
+  include: typeof withCategory;
+}>;
+
+export type ProductSort = 'recent' | 'price-asc' | 'price-desc';
+
+// Filtros/orden/paginación comunes a los 3 listados públicos (catálogo,
+// categoría, búsqueda). Todo resuelto server-side vía Prisma -- reemplaza
+// el filtrado en memoria que tenía ProductToolbar, que no escalaba más
+// allá de catálogos chicos.
+export interface ProductListFilters {
+  sort?: ProductSort;
+  minPrice?: number;
+  maxPrice?: number;
+  categoryId?: string;
+  subCategoryId?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedProducts {
+  products: ProductWithCategory[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+}
+
+export const DEFAULT_PRODUCT_PAGE_SIZE = 12;
+
+function buildOrderBy(sort?: ProductSort): Prisma.ProductOrderByWithRelationInput {
+  if (sort === 'price-asc') return { price: 'asc' };
+  if (sort === 'price-desc') return { price: 'desc' };
+  return { createdAt: 'desc' };
+}
+
+function buildPriceWhere(
+  minPrice?: number,
+  maxPrice?: number
+): Prisma.FloatFilter | undefined {
+  if (minPrice == null && maxPrice == null) return undefined;
+  return {
+    ...(minPrice != null ? { gte: minPrice } : {}),
+    ...(maxPrice != null ? { lte: maxPrice } : {}),
+  };
+}
+
+async function paginateProducts(
+  where: Prisma.ProductWhereInput,
+  filters: ProductListFilters
+): Promise<PaginatedProducts> {
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = filters.pageSize ?? DEFAULT_PRODUCT_PAGE_SIZE;
+
+  const [products, totalCount] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: withCategory,
+      orderBy: buildOrderBy(filters.sort),
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return {
+    products,
+    totalCount,
+    totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
+    page,
+    pageSize,
+  };
+}
+
+export async function getActiveProducts(
+  filters: ProductListFilters = {}
+): Promise<PaginatedProducts> {
+  const priceWhere = buildPriceWhere(filters.minPrice, filters.maxPrice);
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    ...(priceWhere ? { price: priceWhere } : {}),
+    ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+    ...(filters.subCategoryId ? { subCategoryId: filters.subCategoryId } : {}),
+  };
+
+  return paginateProducts(where, filters);
 }
 
 export async function getProductById(id: string) {
@@ -88,32 +168,54 @@ export async function getCategoryBySlug(slug: string) {
 
 // El slug puede ser una categoría principal o una subcategoría: en ambos
 // casos se buscan productos que la tengan como categoría o como subcategoría.
-export async function getProductsByCategorySlug(slug: string) {
+export async function getProductsByCategorySlug(
+  slug: string,
+  filters: ProductListFilters = {}
+): Promise<PaginatedProducts> {
   const category = await getCategoryBySlug(slug);
-  if (!category) return [];
+  if (!category) {
+    return { products: [], totalCount: 0, totalPages: 1, page: 1, pageSize: filters.pageSize ?? DEFAULT_PRODUCT_PAGE_SIZE };
+  }
 
-  return prisma.product.findMany({
-    where: {
-      isActive: true,
-      OR: [{ categoryId: category.id }, { subCategoryId: category.id }],
-    },
-    include: withCategory,
-    orderBy: { createdAt: 'desc' },
-  });
+  const priceWhere = buildPriceWhere(filters.minPrice, filters.maxPrice);
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    OR: [{ categoryId: category.id }, { subCategoryId: category.id }],
+    ...(priceWhere ? { price: priceWhere } : {}),
+    // La subcategoría (si se elige un filtro dentro de esta misma categoría)
+    // se aplica como AND explícito para no chocar con el OR de arriba.
+    ...(filters.subCategoryId
+      ? { AND: [{ subCategoryId: filters.subCategoryId }] }
+      : {}),
+  };
+
+  return paginateProducts(where, filters);
 }
 
-export async function searchProducts(query: string) {
-  if (!query.trim()) return [];
+export async function searchProducts(
+  query: string,
+  filters: ProductListFilters = {}
+): Promise<PaginatedProducts> {
+  if (!query.trim()) {
+    return { products: [], totalCount: 0, totalPages: 1, page: 1, pageSize: filters.pageSize ?? DEFAULT_PRODUCT_PAGE_SIZE };
+  }
 
-  return prisma.product.findMany({
-    where: {
-      isActive: true,
-      OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-      ],
-    },
-    include: withCategory,
-    orderBy: { createdAt: 'desc' },
-  });
+  const priceWhere = buildPriceWhere(filters.minPrice, filters.maxPrice);
+  const andConditions: Prisma.ProductWhereInput[] = [];
+  if (filters.categoryId) andConditions.push({ categoryId: filters.categoryId });
+  if (filters.subCategoryId) {
+    andConditions.push({ subCategoryId: filters.subCategoryId });
+  }
+
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    OR: [
+      { name: { contains: query, mode: 'insensitive' } },
+      { description: { contains: query, mode: 'insensitive' } },
+    ],
+    ...(priceWhere ? { price: priceWhere } : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+
+  return paginateProducts(where, filters);
 }

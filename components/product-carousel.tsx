@@ -15,6 +15,7 @@ interface Product {
   name: string;
   price: number | string;
   images: string[];
+  isOutOfStock?: boolean;
   category?: { name: string; slug: string } | null;
 }
 
@@ -59,6 +60,7 @@ export function ProductCarousel({
                 price={Number(product.price)}
                 image={product.images?.[0]}
                 category={product.category}
+                isOutOfStock={product.isOutOfStock}
               />
             </CarouselItem>
           ))}

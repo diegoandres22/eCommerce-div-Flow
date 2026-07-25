@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ImageDropzone } from './image-dropzone';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import {
   AlertDialog,
@@ -51,8 +52,48 @@ export function BannerManager({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Banner | null>(null);
+  // Ids con un PATCH de isActive en curso: bloquea ese switch puntual (no
+  // toda la tabla) y sirve de guardia contra clics concurrentes sobre el
+  // mismo banner mientras la respuesta todavía no vuelve.
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
+
+  const toggleActive = async (banner: Banner) => {
+    if (togglingIds.has(banner.id)) return;
+    const nextActive = !banner.isActive;
+
+    setTogglingIds(prev => new Set(prev).add(banner.id));
+    // Optimista: refleja el cambio de inmediato, sin esperar la red.
+    setBanners(prev =>
+      prev.map(b => (b.id === banner.id ? { ...b, isActive: nextActive } : b))
+    );
+
+    try {
+      const res = await fetch(`/api/admin/banners/${banner.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      // La API o la red no confirmaron el cambio: se revierte la UI.
+      setBanners(prev =>
+        prev.map(b => (b.id === banner.id ? { ...b, isActive: !nextActive } : b))
+      );
+      toast({
+        title: 'No se pudo actualizar el banner',
+        description: 'Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev);
+        next.delete(banner.id);
+        return next;
+      });
+    }
+  };
 
   const resetForm = () => {
     setEditing(null);
@@ -241,9 +282,21 @@ export function BannerManager({
                 {banner.title || '(sin título)'}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                orden {banner.order} ·{' '}
-                {banner.isActive ? 'activo' : 'inactivo'}
+                orden {banner.order}
               </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Switch
+                checked={banner.isActive}
+                onCheckedChange={() => toggleActive(banner)}
+                loading={togglingIds.has(banner.id)}
+                aria-label={
+                  banner.isActive ? 'Desactivar banner' : 'Activar banner'
+                }
+              />
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                {banner.isActive ? 'Activo' : 'Inactivo'}
+              </span>
             </div>
             <Button size="icon" variant="ghost" onClick={() => startEdit(banner)}>
               <Pencil className="h-4 w-4" />

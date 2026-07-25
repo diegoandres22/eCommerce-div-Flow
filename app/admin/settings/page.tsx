@@ -1,6 +1,6 @@
 // File: app/admin/settings/page.tsx
 import prisma from '@/lib/prisma';
-import { SettingsForm } from '@/components/admin/settings-form';
+import { WhatsappSettingsForm } from '@/components/admin/whatsapp-settings-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +9,8 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Configuración de la tienda</h1>
-      <SettingsForm initialConfig={config} />
+      <h1 className="text-2xl font-bold">Verificar número de WhatsApp</h1>
+      <WhatsappSettingsForm initialConfig={config} />
     </div>
   );
 }

@@ -47,6 +47,7 @@ export function CartDrawer() {
       return () => clearTimeout(timer);
     }
     prevTotalItems.current = totalItems;
+    return undefined;
   }, [totalItems, isLoaded]);
 
   return (

@@ -15,10 +15,13 @@ import {
 } from '@/components/ui/sheet';
 import { formatCurrency } from '@/lib/utils';
 import { useWishlist } from '@/components/wishlist-provider';
+import { STORE_CONFIG } from '@/lib/store-config';
 
 export function WishlistDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const { items, removeItem, totalItems } = useWishlist();
+
+  if (!STORE_CONFIG.mostrarFavoritos) return null;
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>

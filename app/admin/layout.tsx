@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { LogoutButton } from '@/components/logout-button';
 import { PredictiveSearch } from '@/components/predictive-search';
 import { Logo } from '@/components/logo';
-import { STORE_NAME } from '@/lib/store-config';
+import { STORE_CONFIG } from '@/lib/store-config';
 
 export default async function AdminLayout({
   children,
@@ -23,7 +23,7 @@ export default async function AdminLayout({
         <div className="p-6">
           <Link href="/admin" className="flex items-center gap-2 text-xl font-bold">
             <Logo />
-            {STORE_NAME}
+            {STORE_CONFIG.nombre}
           </Link>
         </div>
 
@@ -54,7 +54,7 @@ export default async function AdminLayout({
               <AdminMobileNav />
               <span className="flex items-center gap-2 font-semibold lg:hidden">
                 <Logo />
-                {STORE_NAME}
+                {STORE_CONFIG.nombre}
               </span>
             </div>
 

@@ -9,7 +9,9 @@ import {
   FolderTree,
   Image as ImageIcon,
   TrendingUp,
+  MessageSquare,
   Settings,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,10 +25,16 @@ const navItems = [
     label: 'Precios masivos',
     icon: TrendingUp,
   },
+  { href: '/admin/leads', label: 'Leads', icon: MessageSquare },
   {
     href: '/admin/settings',
     label: 'Verificar número de WhatsApp',
     icon: Settings,
+  },
+  {
+    href: '/admin/announcement-bar',
+    label: 'Banner de la tienda',
+    icon: Megaphone,
   },
 ];
 

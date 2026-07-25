@@ -10,7 +10,7 @@ import { CategoriesMenu } from '@/components/categories-menu';
 import { LogoutButton } from '@/components/logout-button';
 import { Logo } from '@/components/logo';
 import { PredictiveSearch } from '@/components/predictive-search';
-import { STORE_NAME } from '@/lib/store-config';
+import { STORE_CONFIG } from '@/lib/store-config';
 import { Button } from '@/components/ui/button';
 
 export async function Header() {
@@ -27,7 +27,7 @@ export async function Header() {
           className="flex shrink-0 items-center gap-2 text-xl font-bold sm:text-2xl"
         >
           <Logo />
-          {STORE_NAME}
+          {STORE_CONFIG.nombre}
         </Link>
 
         <div className="w-full sm:max-w-md sm:flex-1">

@@ -27,6 +27,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { ImageDropzone } from '@/components/admin/image-dropzone';
 import { ProductColorEditor } from '@/components/admin/product-color-editor';
+import { STORE_CONFIG } from '@/lib/store-config';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +55,7 @@ const emptyForm = {
   campoNumero2: '',
   campoTextoGeneral: '',
   isActive: true,
+  isOutOfStock: false,
 };
 
 export function ProductManager({
@@ -110,6 +112,7 @@ export function ProductManager({
       campoNumero2: String(product.campoNumero2),
       campoTextoGeneral: product.campoTextoGeneral,
       isActive: product.isActive,
+      isOutOfStock: product.isOutOfStock,
     });
     setShowForm(true);
   };
@@ -129,6 +132,7 @@ export function ProductManager({
         campoNumero2: parseFloat(form.campoNumero2),
         campoTextoGeneral: form.campoTextoGeneral,
         isActive: form.isActive,
+        isOutOfStock: form.isOutOfStock,
       };
 
       const url = editing
@@ -352,26 +356,40 @@ export function ProductManager({
             </div>
           </div>
 
-          <div>
-            <Label>Colores disponibles (opcional)</Label>
-            <div className="mt-2">
-              <ProductColorEditor
-                value={form.campoTextoGeneral}
-                onChange={serialized =>
-                  setForm(prev => ({ ...prev, campoTextoGeneral: serialized }))
+          {STORE_CONFIG.mostrarColoresDeProducto && (
+            <div>
+              <Label>Colores disponibles (opcional)</Label>
+              <div className="mt-2">
+                <ProductColorEditor
+                  value={form.campoTextoGeneral}
+                  onChange={serialized =>
+                    setForm(prev => ({ ...prev, campoTextoGeneral: serialized }))
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={e => setForm({ ...form, isActive: e.target.checked })}
+              />
+              Activo (visible en la tienda)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.isOutOfStock}
+                onChange={e =>
+                  setForm({ ...form, isOutOfStock: e.target.checked })
                 }
               />
-            </div>
+              Agotado (visible, pero no se puede comprar)
+            </label>
           </div>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={e => setForm({ ...form, isActive: e.target.checked })}
-            />
-            Activo (visible en la tienda)
-          </label>
 
           <div className="flex gap-2">
             <Button type="submit" disabled={isSubmitting || !form.categoryId}>
@@ -415,7 +433,14 @@ export function ProductManager({
                 {product.subCategory?.name || '—'}
               </TableCell>
               <TableCell>${Number(product.price).toFixed(2)}</TableCell>
-              <TableCell>{product.isActive ? 'Sí' : 'No'}</TableCell>
+              <TableCell>
+                {product.isActive ? 'Sí' : 'No'}
+                {product.isOutOfStock && (
+                  <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                    Agotado
+                  </span>
+                )}
+              </TableCell>
               <TableCell className="flex justify-end gap-2">
                 <Button size="icon" variant="ghost" onClick={() => startEdit(product)}>
                   <Pencil className="h-4 w-4" />

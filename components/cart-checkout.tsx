@@ -51,6 +51,25 @@ export function CartCheckout({
       )
     : null;
 
+  // Fire-and-forget: deja un registro de la intención de compra sin
+  // bloquear ni retrasar la apertura de WhatsApp. Si falla (red, servidor),
+  // el cliente igual llega a WhatsApp con normalidad.
+  const logLead = () => {
+    fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: items.map(item => ({
+          productId: item.productId,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+        })),
+        totalAmount,
+      }),
+    }).catch(() => {});
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="mb-2 text-3xl font-bold tracking-tight">Carrito</h1>
@@ -150,7 +169,12 @@ export function CartCheckout({
                 size="lg"
                 className="w-full bg-green-600 hover:bg-green-700"
               >
-                <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={logLead}
+                >
                   <MessageCircle className="mr-2 h-5 w-5" />
                   Pedir por WhatsApp
                 </a>

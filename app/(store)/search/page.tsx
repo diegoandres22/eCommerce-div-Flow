@@ -4,12 +4,23 @@ import { Suspense } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ProductToolbar } from '@/components/product-toolbar';
+import { ProductGrid } from '@/components/product-grid';
 import { ProductGridSkeleton } from '@/components/product-grid-skeleton';
-import { searchProducts } from '@/server/queries/products';
+import { ProductFilters } from '@/components/product-filters';
+import { Pagination } from '@/components/pagination';
+import { searchProducts, type ProductSort } from '@/server/queries/products';
+import prisma from '@/lib/prisma';
 
 interface SearchPageProps {
-  searchParams: { q?: string };
+  searchParams: {
+    q?: string;
+    sort?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    categoryId?: string;
+    subCategoryId?: string;
+    page?: string;
+  };
 }
 
 export async function generateMetadata({
@@ -19,7 +30,9 @@ export async function generateMetadata({
   return { title: query ? `Buscar: ${query}` : 'Buscar productos' };
 }
 
-async function SearchResults({ query }: { query: string }) {
+async function SearchResults({ searchParams }: SearchPageProps) {
+  const query = searchParams.q || '';
+
   if (!query.trim()) {
     return (
       <div className="py-16 text-center">
@@ -31,8 +44,32 @@ async function SearchResults({ query }: { query: string }) {
     );
   }
 
-  const products = await searchProducts(query);
-  return <ProductToolbar products={products} />;
+  const [{ products, totalCount, totalPages, page }, categories] =
+    await Promise.all([
+      searchProducts(query, {
+        sort: searchParams.sort as ProductSort | undefined,
+        minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
+        maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined,
+        categoryId: searchParams.categoryId,
+        subCategoryId: searchParams.subCategoryId,
+        page: searchParams.page ? Number(searchParams.page) : 1,
+      }),
+      prisma.category.findMany({ orderBy: { name: 'asc' } }),
+    ]);
+
+  return (
+    <>
+      <Suspense fallback={<div className="h-16 animate-pulse rounded-md bg-muted" />}>
+        <ProductFilters totalCount={totalCount} categories={categories} />
+      </Suspense>
+      <div className="mt-6">
+        <ProductGrid products={products} />
+      </div>
+      <Suspense fallback={null}>
+        <Pagination page={page} totalPages={totalPages} />
+      </Suspense>
+    </>
+  );
 }
 
 export default function SearchPage({ searchParams }: SearchPageProps) {
@@ -60,7 +97,7 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
       </form>
 
       <Suspense fallback={<ProductGridSkeleton />}>
-        <SearchResults query={query} />
+        <SearchResults searchParams={searchParams} />
       </Suspense>
     </div>
   );

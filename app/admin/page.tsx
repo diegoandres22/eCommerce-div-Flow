@@ -3,7 +3,9 @@ import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SmartImage } from '@/components/ui/smart-image';
-import { formatPrice } from '@/lib/utils';
+import { getLeadStats } from '@/server/queries/leads';
+import { getTopBrokenLinks } from '@/server/queries/broken-links';
+import { formatPrice, formatDateTime } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,8 @@ export default async function AdminDashboardPage() {
     productsWithoutImages,
     topViewed,
     categoriesWithCounts,
+    leadStats,
+    topBrokenLinks,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.product.count({ where: { isActive: true } }),
@@ -43,6 +47,8 @@ export default async function AdminDashboardPage() {
       },
       orderBy: { name: 'asc' },
     }),
+    getLeadStats(),
+    getTopBrokenLinks(5),
   ]);
 
   const inactiveProductCount = productCount - activeProductCount;
@@ -56,6 +62,12 @@ export default async function AdminDashboardPage() {
       href: '/admin/products',
       label: 'Sin imágenes',
       value: productsWithoutImages,
+    },
+    { href: '/admin/leads', label: 'Leads (hoy)', value: leadStats.leadsToday },
+    {
+      href: '/admin/leads',
+      label: 'Potencial de ventas',
+      value: formatPrice(leadStats.totalRevenuePotential),
     },
   ];
 
@@ -155,6 +167,32 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Enlaces rotos más visitados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {topBrokenLinks.length === 0 && (
+            <p className="text-muted-foreground">
+              Sin visitas a páginas inexistentes registradas todavía.
+            </p>
+          )}
+          {topBrokenLinks.map(link => (
+            <div key={link.id} className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-mono text-xs">{link.path}</p>
+                <p className="text-xs text-muted-foreground">
+                  última vez: {formatDateTime(link.lastSeenAt)}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
+                {link.hits} {link.hits === 1 ? 'visita' : 'visitas'}
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

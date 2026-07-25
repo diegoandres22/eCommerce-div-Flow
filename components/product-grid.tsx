@@ -7,6 +7,7 @@ interface Product {
   name: string;
   price: number | string;
   images: string[];
+  isOutOfStock?: boolean;
   category?: {
     name: string;
     slug: string;
@@ -57,6 +58,7 @@ export function ProductGrid({ products, className }: ProductGridProps) {
           price={Number(product.price)}
           image={product.images?.[0]}
           category={product.category}
+          isOutOfStock={product.isOutOfStock}
         />
       ))}
     </div>

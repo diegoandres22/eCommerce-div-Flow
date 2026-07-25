@@ -8,12 +8,13 @@ import {
   getTopViewedProducts,
   getCategoriesWithActiveProducts,
 } from '@/server/queries/products';
+import { STORE_CONFIG } from '@/lib/store-config';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Inicio',
-  description: 'Descubre nuestros productos.',
+  description: STORE_CONFIG.descripcion,
 };
 
 export default async function HomePage() {

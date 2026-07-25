@@ -2,6 +2,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import type { Product as ProductJsonLd, WithContext } from 'schema-dts';
 import { SmartImage } from '@/components/ui/smart-image';
 import {
   getProductById,
@@ -12,6 +13,8 @@ import { AddToCart } from '@/components/add-to-cart';
 import { WishlistButton } from '@/components/wishlist-button';
 import { ShareButtons } from '@/components/share-buttons';
 import { ProductCarousel } from '@/components/product-carousel';
+import { RecentlyViewedCarousel } from '@/components/recently-viewed-carousel';
+import { TrackRecentlyViewed } from '@/components/track-recently-viewed';
 import { ProductColorSwatches } from '@/components/product-color-swatches';
 import { TrustBadges } from '@/components/trust-badges';
 import { parseProductColors } from '@/lib/product-colors';
@@ -60,8 +63,33 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const productUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/products/${product.id}`;
   const colors = parseProductColors(product.campoTextoGeneral);
 
+  // Datos estructurados para resultados enriquecidos de Google (precio,
+  // disponibilidad, imagen) en la ficha de producto.
+  const productJsonLd: WithContext<ProductJsonLd> = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description || undefined,
+    image: product.images.length > 0 ? product.images : undefined,
+    category: product.category.name,
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: 'USD',
+      price: Number(product.price).toFixed(2),
+      availability: product.isOutOfStock
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+    },
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <nav className="mb-8" aria-label="Breadcrumb">
         <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
           <li>
@@ -144,6 +172,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
           <ProductColorSwatches colors={colors} />
 
+          {product.isOutOfStock && (
+            <p className="text-sm font-medium text-destructive">
+              Este producto está agotado por el momento.
+            </p>
+          )}
+
           <div className="flex items-center gap-2">
             <AddToCart
               product={{
@@ -153,6 +187,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 images: product.images,
               }}
               showQuantitySelector
+              disabled={product.isOutOfStock}
             />
           </div>
 
@@ -183,6 +218,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
           />
         </div>
       )}
+
+      <div className="mt-16">
+        <RecentlyViewedCarousel excludeId={product.id} />
+      </div>
+
+      <TrackRecentlyViewed
+        product={{
+          id: product.id,
+          name: product.name,
+          price: Number(product.price),
+          images: product.images,
+          category: product.category,
+        }}
+      />
     </div>
   );
 }

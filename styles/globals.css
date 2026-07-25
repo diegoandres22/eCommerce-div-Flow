@@ -325,6 +325,10 @@
   .scale-in {
     animation: scaleIn 0.2s ease-out;
   }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
 }
 
 /* Keyframes */
@@ -354,6 +358,17 @@
   to {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* Página 404 (app/not-found.tsx): flotado sutil del ícono central. */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(6deg);
   }
 }
 

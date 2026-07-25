@@ -101,6 +101,10 @@ model Product {
 
   views     Int      @default(0)
   isActive  Boolean  @default(true)
+  // Independiente de isActive: el producto sigue visible/indexable, pero
+  // no se puede agregar al carrito. No es control de inventario (sin
+  // conteo de stock), es solo un interruptor de disponibilidad.
+  isOutOfStock Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -112,7 +116,40 @@ model Product {
   subCategoryId String?
   subCategory   Category? @relation("ProductSubCategory", fields: [subCategoryId], references: [id])
 
+  @@index([isActive])
   @@map("products")
+}
+
+// Registro de intención de compra: se crea justo antes de redirigir al
+// cliente a WhatsApp (ver lib/whatsapp.ts + cart-checkout.tsx), sin
+// bloquear ni modificar ese flujo. No es un pedido con estados de envío ni
+// un modelo de pagos -- es solo un rastro para que el admin sepa qué se
+// cotizó, cuándo, y por cuánto, ya que WhatsApp por sí solo no deja ningún
+// registro consultable desde el panel.
+model Lead {
+  id          String   @id @default(cuid())
+  items       Json
+  totalAmount Float
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("leads")
+}
+
+// Registro de enlaces rotos: cada vez que se renderiza app/not-found.tsx se
+// hace un upsert acá (path -> +1 hit), fire-and-forget, para que el admin
+// pueda ver qué URLs inexistentes reciben más visitas (links viejos de
+// campañas, productos borrados que todavía circulan, typos frecuentes en la
+// barra de direcciones, etc.) sin tener que revisar logs de Vercel a mano.
+model BrokenLink {
+  id          String   @id @default(cuid())
+  path        String   @unique
+  hits        Int      @default(1)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([hits])
+  @@map("broken_links")
 }
 
 // --- Configuración de la Tienda ---

@@ -10,38 +10,43 @@ import { WhatsAppFloatButton } from '@/components/whatsapp-float-button';
 import { SiteChrome } from '@/components/site-chrome';
 import { CartProvider } from '@/components/cart-provider';
 import { WishlistProvider } from '@/components/wishlist-provider';
+import { RecentlyViewedProvider } from '@/components/recently-viewed-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
+import { PwaRegister } from '@/components/pwa-register';
+import { STORE_CONFIG } from '@/lib/store-config';
+import { generateThemeStyleTag } from '@/lib/theme';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const dynamic = 'force-dynamic';
 
+const { nombre: storeName, descripcion: storeDescription } = STORE_CONFIG;
+
 export const metadata: Metadata = {
   title: {
-    default: 'NextJS E-commerce Store',
-    template: '%s | NextJS E-commerce',
+    default: storeName,
+    template: `%s | ${storeName}`,
   },
-  description: 'Modern e-commerce store built with Next.js and Prisma',
+  description: storeDescription,
   keywords: ['ecommerce', 'nextjs', 'store', 'shopping'],
-  authors: [{ name: 'NextJS E-commerce' }],
-  creator: 'NextJS E-commerce',
+  authors: [{ name: storeName }],
+  creator: storeName,
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   ),
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: 'es_ES',
     url: '/',
-    title: 'NextJS E-commerce Store',
-    description: 'Modern e-commerce store built with Next.js',
-    siteName: 'NextJS E-commerce',
+    title: storeName,
+    description: storeDescription,
+    siteName: storeName,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NextJS E-commerce Store',
-    description: 'Modern e-commerce store built with Next.js',
-    creator: '@nextjsecommerce',
+    title: storeName,
+    description: storeDescription,
   },
   robots: {
     index: true,
@@ -62,23 +67,38 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Colores de marca desde STORE_CONFIG (lib/theme.ts): mismas
+            variables que styles/globals.css, declaradas después para que
+            ganen por cascada sin tocar Tailwind ni usar !important. */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: generateThemeStyleTag(STORE_CONFIG),
+          }}
+        />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <NextTopLoader color="hsl(var(--primary))" showSpinner={false} height={3} />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <CartProvider>
             <WishlistProvider>
-              <div className="flex min-h-screen flex-col">
-                <SiteChrome
-                  announcementBar={<AnnouncementBar />}
-                  header={<Header />}
-                  footer={<Footer />}
-                  whatsappButton={<WhatsAppFloatButton />}
-                >
-                  {children}
-                </SiteChrome>
-              </div>
-              <Toaster />
+              <RecentlyViewedProvider>
+                <div className="flex min-h-screen flex-col">
+                  <SiteChrome
+                    announcementBar={
+                      STORE_CONFIG.mostrarBannerAnuncios ? <AnnouncementBar /> : null
+                    }
+                    header={<Header />}
+                    footer={<Footer />}
+                    whatsappButton={<WhatsAppFloatButton />}
+                  >
+                    {children}
+                  </SiteChrome>
+                </div>
+                <Toaster />
+                <PwaRegister />
+              </RecentlyViewedProvider>
             </WishlistProvider>
           </CartProvider>
         </ThemeProvider>

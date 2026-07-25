@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWishlist, type WishlistProduct } from '@/components/wishlist-provider';
 import { cn } from '@/lib/utils';
+import { STORE_CONFIG } from '@/lib/store-config';
 
 export function WishlistButton({
   product,
@@ -14,6 +15,9 @@ export function WishlistButton({
   className?: string;
 }) {
   const { isWishlisted, toggleWishlist } = useWishlist();
+
+  if (!STORE_CONFIG.mostrarFavoritos) return null;
+
   const active = isWishlisted(product.id);
 
   return (

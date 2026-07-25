@@ -31,6 +31,8 @@ export const productSchema = z.object({
   // todos los productos tienen variantes de color.
   campoTextoGeneral: z.string().default(''),
   isActive: z.boolean().default(true),
+  // Independiente de isActive: producto visible pero no comprable.
+  isOutOfStock: z.boolean().default(false),
 });
 
 // Banner del carrusel principal (home). imageUrl es una URL de Supabase Storage,
@@ -53,6 +55,24 @@ export const contactSchema = z.object({
     .string()
     .min(10, 'Cuéntanos un poco más (mínimo 10 caracteres)')
     .max(2000),
+});
+
+// Lead / intención de compra: se registra justo antes de redirigir a
+// WhatsApp (ver cart-checkout.tsx), sin pedirle nada extra al cliente. Es
+// solo un snapshot de lo que se cotizó, para que el admin tenga un rastro
+// consultable de lo que WhatsApp por sí solo no deja ver.
+export const leadSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        name: z.string().min(1),
+        price: z.number().nonnegative(),
+        quantity: z.number().int().positive(),
+      })
+    )
+    .min(1, 'El carrito no puede estar vacío'),
+  totalAmount: z.number().nonnegative(),
 });
 
 // Actualización masiva de precios (/admin/bulk-pricing). "categoryId" sirve

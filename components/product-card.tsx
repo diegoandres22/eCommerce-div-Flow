@@ -16,9 +16,17 @@ interface ProductCardProps {
     name: string;
     slug: string;
   } | null;
+  isOutOfStock?: boolean;
 }
 
-export function ProductCard({ id, name, price, image, category }: ProductCardProps) {
+export function ProductCard({
+  id,
+  name,
+  price,
+  image,
+  category,
+  isOutOfStock,
+}: ProductCardProps) {
   return (
     <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg">
       <div className="relative aspect-square overflow-hidden bg-muted">
@@ -32,6 +40,12 @@ export function ProductCard({ id, name, price, image, category }: ProductCardPro
           />
         </Link>
 
+        {isOutOfStock && (
+          <span className="absolute left-2 top-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-background">
+            Agotado
+          </span>
+        )}
+
         <WishlistButton
           product={{ id, name, price, images: image ? [image] : [] }}
           className="absolute right-2 top-2 h-8 w-8"
@@ -42,8 +56,11 @@ export function ProductCard({ id, name, price, image, category }: ProductCardPro
             product={{ id, name, price, images: image ? [image] : [] }}
             variant="secondary"
             size="sm"
+            disabled={isOutOfStock}
             className="w-full bg-background/90 hover:bg-background"
-          />
+          >
+            {isOutOfStock ? 'Agotado' : undefined}
+          </AddToCart>
         </div>
       </div>
 
