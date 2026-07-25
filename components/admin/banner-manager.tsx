@@ -3,13 +3,13 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import type { Banner } from '@prisma/client';
+import { SmartImage } from '@/components/ui/smart-image';
 import { Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CloudinaryUploadButton } from './cloudinary-upload-button';
+import { ImageDropzone } from './image-dropzone';
 import { useToast } from '@/components/ui/use-toast';
 import {
   AlertDialog,
@@ -148,19 +148,12 @@ export function BannerManager({
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-3 rounded-md border p-4">
           <div>
-            <Label htmlFor="imageUrl">Imagen (URL de Cloudinary)</Label>
-            <div className="flex gap-2">
-              <Input
-                id="imageUrl"
-                value={form.imageUrl}
-                onChange={e => setForm({ ...form, imageUrl: e.target.value })}
-                placeholder="https://res.cloudinary.com/..."
-                required
-              />
-              <CloudinaryUploadButton
-                onUploaded={urls =>
-                  setForm(f => ({ ...f, imageUrl: urls[0] || f.imageUrl }))
-                }
+            <Label>Imagen</Label>
+            <div className="mt-2">
+              <ImageDropzone
+                images={form.imageUrl ? [form.imageUrl] : []}
+                onChange={urls => setForm(f => ({ ...f, imageUrl: urls[0] || '' }))}
+                multiple={false}
               />
             </div>
           </div>
@@ -236,7 +229,7 @@ export function BannerManager({
           >
             <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded bg-muted">
-              <Image
+              <SmartImage
                 src={banner.imageUrl}
                 alt={banner.title || 'Banner'}
                 fill

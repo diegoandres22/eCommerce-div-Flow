@@ -2,9 +2,9 @@
 'use client';
 
 import { useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import Autoplay from 'embla-carousel-autoplay';
+import { SmartImage } from '@/components/ui/smart-image';
 import type { Banner } from '@prisma/client';
 import {
   Carousel,
@@ -17,7 +17,7 @@ import {
 function Slide({ banner }: { banner: Banner }) {
   const content = (
     <div className="relative h-[220px] w-full overflow-hidden sm:h-[340px] lg:h-[440px]">
-      <Image
+      <SmartImage
         src={banner.imageUrl}
         alt={banner.title || 'Banner'}
         fill

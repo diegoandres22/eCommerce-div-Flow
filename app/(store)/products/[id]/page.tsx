@@ -1,16 +1,21 @@
 // File: app/(store)/products/[id]/page.tsx
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
+import { SmartImage } from '@/components/ui/smart-image';
 import {
   getProductById,
   getRelatedProducts,
   incrementProductViews,
 } from '@/server/queries/products';
 import { AddToCart } from '@/components/add-to-cart';
-import { ProductGrid } from '@/components/product-grid';
-import { formatPrice } from '@/lib/utils';
+import { WishlistButton } from '@/components/wishlist-button';
+import { ShareButtons } from '@/components/share-buttons';
+import { ProductCarousel } from '@/components/product-carousel';
+import { ProductColorSwatches } from '@/components/product-color-swatches';
+import { TrustBadges } from '@/components/trust-badges';
+import { parseProductColors } from '@/lib/product-colors';
+import { formatPrice, formatNumber } from '@/lib/utils';
 
 interface ProductPageProps {
   params: { id: string };
@@ -48,8 +53,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const relatedProducts = await getRelatedProducts(
     product.id,
-    product.categoryId
+    product.categoryId,
+    product.subCategoryId
   );
+
+  const productUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/products/${product.id}`;
+  const colors = parseProductColors(product.campoTextoGeneral);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -83,7 +92,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="space-y-4">
           <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-            <Image
+            <SmartImage
               src={product.images[0] || '/images/placeholder.svg'}
               alt={product.name}
               fill
@@ -98,7 +107,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   key={url}
                   className="relative aspect-square overflow-hidden rounded-lg bg-muted"
                 >
-                  <Image
+                  <SmartImage
                     src={url}
                     alt={`${product.name} ${index + 2}`}
                     fill
@@ -111,35 +120,67 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </div>
 
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
-            <span className="mt-2 block text-3xl font-bold">
-              {formatPrice(Number(product.price))}
-            </span>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+              <span className="mt-2 block text-3xl font-bold">
+                {formatPrice(Number(product.price))}
+              </span>
+            </div>
+            <WishlistButton
+              product={{
+                id: product.id,
+                name: product.name,
+                price: Number(product.price),
+                images: product.images,
+              }}
+              className="shrink-0"
+            />
           </div>
 
           {product.description && (
             <p className="text-muted-foreground">{product.description}</p>
           )}
 
-          <AddToCart
-            product={{
-              id: product.id,
-              name: product.name,
-              price: Number(product.price),
-              images: product.images,
-            }}
-            showQuantitySelector
-          />
+          <ProductColorSwatches colors={colors} />
+
+          <div className="flex items-center gap-2">
+            <AddToCart
+              product={{
+                id: product.id,
+                name: product.name,
+                price: Number(product.price),
+                images: product.images,
+              }}
+              showQuantitySelector
+            />
+          </div>
+
+          <ShareButtons productName={product.name} url={productUrl} />
+
+          <TrustBadges />
+
+          <div className="grid grid-cols-2 gap-3 rounded-lg border p-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Detalle</p>
+              <p className="font-medium">{product.campoTexto1}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Valor de referencia</p>
+              <p className="font-medium">
+                {formatNumber(Number(product.campoNumero2))}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {relatedProducts.length > 0 && (
         <div className="mt-16">
-          <h2 className="mb-8 text-2xl font-bold tracking-tight">
-            Productos relacionados
-          </h2>
-          <ProductGrid products={relatedProducts} />
+          <ProductCarousel
+            title="También te puede interesar"
+            products={relatedProducts}
+          />
         </div>
       )}
     </div>

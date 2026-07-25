@@ -2,10 +2,10 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useCart } from '@/components/cart-provider';
 import { Button } from '@/components/ui/button';
+import { SmartImage } from '@/components/ui/smart-image';
 import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
 import { buildWhatsAppOrderLink } from '@/lib/whatsapp';
@@ -66,7 +66,7 @@ export function CartCheckout({
               className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center"
             >
               <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                <Image
+                <SmartImage
                   src={item.product.images[0] || '/images/placeholder.svg'}
                   alt={item.product.name}
                   fill

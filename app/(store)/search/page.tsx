@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ProductGrid } from '@/components/product-grid';
+import { ProductToolbar } from '@/components/product-toolbar';
 import { ProductGridSkeleton } from '@/components/product-grid-skeleton';
 import { searchProducts } from '@/server/queries/products';
 
@@ -32,7 +32,7 @@ async function SearchResults({ query }: { query: string }) {
   }
 
   const products = await searchProducts(query);
-  return <ProductGrid products={products} />;
+  return <ProductToolbar products={products} />;
 }
 
 export default function SearchPage({ searchParams }: SearchPageProps) {

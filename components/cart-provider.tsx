@@ -23,6 +23,10 @@ interface CartContextType {
   clearCart: () => void;
   totalAmount: number;
   totalItems: number;
+  // true recién cuando terminó de leer localStorage: permite a los
+  // consumidores (ej. animación del ícono del carrito) distinguir la carga
+  // inicial del carrito de un agregado real hecho por el usuario.
+  isLoaded: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -92,6 +96,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart,
         totalAmount,
         totalItems,
+        isLoaded,
       }}
     >
       {children}

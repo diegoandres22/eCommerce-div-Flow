@@ -8,6 +8,7 @@ import {
   Package,
   FolderTree,
   Image as ImageIcon,
+  TrendingUp,
   Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,11 @@ const navItems = [
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/categories', label: 'Categories', icon: FolderTree },
   { href: '/admin/banners', label: 'Banners del home', icon: ImageIcon },
+  {
+    href: '/admin/bulk-pricing',
+    label: 'Precios masivos',
+    icon: TrendingUp,
+  },
   {
     href: '/admin/settings',
     label: 'Verificar número de WhatsApp',

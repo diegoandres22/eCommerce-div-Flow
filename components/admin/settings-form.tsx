@@ -17,6 +17,12 @@ export function SettingsForm({
   const [whatsappNumber, setWhatsappNumber] = useState(
     initialConfig?.whatsappNumber || ''
   );
+  const [bannerText, setBannerText] = useState(
+    initialConfig?.bannerText || ''
+  );
+  const [showBanner, setShowBanner] = useState(
+    initialConfig?.showBanner || false
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -30,6 +36,8 @@ export function SettingsForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           whatsappNumber: whatsappNumber.replace(/\D/g, ''),
+          bannerText,
+          showBanner,
         }),
       });
       const data = await res.json();
@@ -47,6 +55,8 @@ export function SettingsForm({
       }
 
       setWhatsappNumber(data.whatsappNumber);
+      setBannerText(data.bannerText || '');
+      setShowBanner(data.showBanner);
       toast({ title: 'Configuración guardada' });
       router.refresh();
     } finally {
@@ -69,6 +79,24 @@ export function SettingsForm({
           Formato internacional, solo dígitos: código de país + número, sin
           &quot;+&quot; ni espacios (ej: 521234567890).
         </p>
+      </div>
+
+      <div className="space-y-2 border-t pt-4">
+        <Label htmlFor="bannerText">Texto del banner de anuncio</Label>
+        <Input
+          id="bannerText"
+          value={bannerText}
+          onChange={e => setBannerText(e.target.value)}
+          placeholder="Ej: ¡Envíos gratis esta semana!"
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={showBanner}
+            onChange={e => setShowBanner(e.target.checked)}
+          />
+          Mostrar banner en la tienda
+        </label>
       </div>
 
       <Button type="submit" disabled={isSubmitting}>

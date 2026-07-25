@@ -9,16 +9,18 @@ import { usePathname } from 'next/navigation';
 const HIDDEN_CHROME_PREFIXES = ['/admin', '/auth/signin'];
 
 interface SiteChromeProps {
+  announcementBar: React.ReactNode;
   header: React.ReactNode;
   footer: React.ReactNode;
   whatsappButton: React.ReactNode;
   children: React.ReactNode;
 }
 
-// Header, Footer y el botón de WhatsApp llegan ya renderizados desde
-// app/layout.tsx (Server Component): así pueden seguir usando auth()/Prisma
-// sin que este wrapper cliente los importe directamente.
+// Todos llegan ya renderizados desde app/layout.tsx (Server Component): así
+// pueden seguir usando auth()/Prisma sin que este wrapper cliente los
+// importe directamente.
 export function SiteChrome({
+  announcementBar,
   header,
   footer,
   whatsappButton,
@@ -35,6 +37,7 @@ export function SiteChrome({
 
   return (
     <>
+      {announcementBar}
       {header}
       <main className="flex-1">{children}</main>
       {footer}

@@ -2,7 +2,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { ProductGrid } from '@/components/product-grid';
+import { ProductToolbar } from '@/components/product-toolbar';
 import { ProductGridSkeleton } from '@/components/product-grid-skeleton';
 import {
   getCategoryBySlug,
@@ -22,7 +22,7 @@ export async function generateMetadata({
 
 async function CategoryProducts({ slug }: { slug: string }) {
   const products = await getProductsByCategorySlug(slug);
-  return <ProductGrid products={products} />;
+  return <ProductToolbar products={products} />;
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {

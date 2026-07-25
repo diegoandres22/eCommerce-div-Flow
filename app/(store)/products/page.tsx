@@ -1,7 +1,7 @@
 // File: app/(store)/products/page.tsx
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { ProductGrid } from '@/components/product-grid';
+import { ProductToolbar } from '@/components/product-toolbar';
 import { ProductGridSkeleton } from '@/components/product-grid-skeleton';
 import { getActiveProducts } from '@/server/queries/products';
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 async function AllProducts() {
   const products = await getActiveProducts();
-  return <ProductGrid products={products} />;
+  return <ProductToolbar products={products} />;
 }
 
 export default function ProductsPage() {

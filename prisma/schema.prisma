@@ -118,8 +118,10 @@ model Product {
 // --- Configuración de la Tienda ---
 
 model ConfiguracionTienda {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   whatsappNumber String
+  bannerText     String?
+  showBanner     Boolean @default(false)
 
   @@map("configuracion_tienda")
 }

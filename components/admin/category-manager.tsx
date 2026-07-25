@@ -24,6 +24,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
+import { RequiredMark } from '@/components/ui/required-mark';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -164,7 +165,10 @@ export function CategoryManager({
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-3 rounded-md border p-4">
           <div>
-            <Label htmlFor="name">Nombre</Label>
+            <Label htmlFor="name">
+              Nombre
+              <RequiredMark />
+            </Label>
             <Input
               id="name"
               value={name}
@@ -173,7 +177,10 @@ export function CategoryManager({
             />
           </div>
           <div>
-            <Label htmlFor="slug">Slug</Label>
+            <Label htmlFor="slug">
+              Slug
+              <RequiredMark />
+            </Label>
             <Input
               id="slug"
               value={slug}
@@ -214,9 +221,11 @@ export function CategoryManager({
         </form>
       )}
 
+      {!showForm && (
+      <div className="overflow-hidden rounded-lg border border-border">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/80 dark:bg-muted/40 hover:bg-muted/80 [&_th]:font-semibold [&_th]:text-foreground">
             <TableHead>Nombre</TableHead>
             <TableHead>Slug</TableHead>
             <TableHead>Tipo</TableHead>
@@ -263,6 +272,8 @@ export function CategoryManager({
           ))}
         </TableBody>
       </Table>
+      </div>
+      )}
 
       <AlertDialog
         open={!!deleteTarget}

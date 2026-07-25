@@ -5,9 +5,11 @@ import NextTopLoader from 'nextjs-toploader';
 import '@/styles/globals.css';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { AnnouncementBar } from '@/components/announcement-bar';
 import { WhatsAppFloatButton } from '@/components/whatsapp-float-button';
 import { SiteChrome } from '@/components/site-chrome';
 import { CartProvider } from '@/components/cart-provider';
+import { WishlistProvider } from '@/components/wishlist-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 
@@ -65,16 +67,19 @@ export default function RootLayout({
         <NextTopLoader color="hsl(var(--primary))" showSpinner={false} height={3} />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <CartProvider>
-            <div className="flex min-h-screen flex-col">
-              <SiteChrome
-                header={<Header />}
-                footer={<Footer />}
-                whatsappButton={<WhatsAppFloatButton />}
-              >
-                {children}
-              </SiteChrome>
-            </div>
-            <Toaster />
+            <WishlistProvider>
+              <div className="flex min-h-screen flex-col">
+                <SiteChrome
+                  announcementBar={<AnnouncementBar />}
+                  header={<Header />}
+                  footer={<Footer />}
+                  whatsappButton={<WhatsAppFloatButton />}
+                >
+                  {children}
+                </SiteChrome>
+              </div>
+              <Toaster />
+            </WishlistProvider>
           </CartProvider>
         </ThemeProvider>
       </body>

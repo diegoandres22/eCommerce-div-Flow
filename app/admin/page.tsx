@@ -1,8 +1,8 @@
 // File: app/admin/page.tsx
 import Link from 'next/link';
-import Image from 'next/image';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SmartImage } from '@/components/ui/smart-image';
 import { formatPrice } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -140,7 +140,7 @@ export default async function AdminDashboardPage() {
               <div key={product.id} className="flex items-center gap-2">
                 <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded bg-muted">
                   {product.images[0] && (
-                    <Image
+                    <SmartImage
                       src={product.images[0]}
                       alt={product.name}
                       fill

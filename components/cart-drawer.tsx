@@ -2,10 +2,10 @@
 
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { SmartImage } from '@/components/ui/smart-image';
 import {
   Sheet,
   SheetContent,
@@ -15,22 +15,53 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet';
 import { ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useCart } from '@/components/cart-provider';
 
 export function CartDrawer() {
   const [isOpen, setIsOpen] = useState(false);
-  const { items, updateQuantity, removeItem, totalAmount, totalItems } =
+  const { items, updateQuantity, removeItem, totalAmount, totalItems, isLoaded } =
     useCart();
+
+  // Animación breve del ícono/badge cada vez que sube el conteo de
+  // artículos. Se ignora mientras !isLoaded: el carrito se hidrata desde
+  // localStorage de forma asíncrona, así que el primer salto de 0 -> N no
+  // es un producto recién agregado, sino el carrito de una visita anterior.
+  const [bump, setBump] = useState(false);
+  const prevTotalItems = useRef(totalItems);
+  const hasSyncedAfterLoad = useRef(false);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!hasSyncedAfterLoad.current) {
+      hasSyncedAfterLoad.current = true;
+      prevTotalItems.current = totalItems;
+      return;
+    }
+
+    if (totalItems > prevTotalItems.current) {
+      setBump(true);
+      const timer = setTimeout(() => setBump(false), 600);
+      prevTotalItems.current = totalItems;
+      return () => clearTimeout(timer);
+    }
+    prevTotalItems.current = totalItems;
+  }, [totalItems, isLoaded]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="outline" size="icon" className="relative">
-          <ShoppingCart className="h-4 w-4" />
+          <ShoppingCart className={cn('h-4 w-4', bump && 'animate-bounce')} />
           {totalItems > 0 && (
-            <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-destructive-foreground">
-              {totalItems > 99 ? '99+' : totalItems}
+            <span className="absolute -right-2 -top-2 z-20 flex h-5 w-5">
+              {bump && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+              )}
+              <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-destructive-foreground">
+                {totalItems > 99 ? '99+' : totalItems}
+              </span>
             </span>
           )}
           <span className="sr-only">Abrir carrito</span>
@@ -68,7 +99,7 @@ export function CartDrawer() {
                   className="flex items-center space-x-4 rounded-lg border p-4"
                 >
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                    <Image
+                    <SmartImage
                       src={item.product.images[0] || '/images/placeholder.svg'}
                       alt={item.product.name}
                       fill

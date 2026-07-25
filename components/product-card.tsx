@@ -1,10 +1,11 @@
 // Location: components/product-card.tsx
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { SmartImage } from '@/components/ui/smart-image';
 import { AddToCart } from './add-to-cart';
+import { WishlistButton } from './wishlist-button';
 
 interface ProductCardProps {
   id: string;
@@ -22,7 +23,7 @@ export function ProductCard({ id, name, price, image, category }: ProductCardPro
     <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg">
       <div className="relative aspect-square overflow-hidden bg-muted">
         <Link href={`/products/${id}`} className="block h-full w-full">
-          <Image
+          <SmartImage
             src={image || '/images/placeholder.svg'}
             alt={name}
             fill
@@ -30,6 +31,11 @@ export function ProductCard({ id, name, price, image, category }: ProductCardPro
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </Link>
+
+        <WishlistButton
+          product={{ id, name, price, images: image ? [image] : [] }}
+          className="absolute right-2 top-2 h-8 w-8"
+        />
 
         <div className="absolute inset-x-2 bottom-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <AddToCart

@@ -15,7 +15,7 @@ export const categorySchema = z.object({
 });
 
 // Product schema (tal como el modelo Product del MVP: sin SKU, sin
-// inventario, sin variantes; images son URLs de Cloudinary pegadas a mano).
+// inventario, sin variantes; images son URLs públicas de Supabase Storage).
 export const productSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio').max(255),
   description: z.string().optional(),
@@ -26,11 +26,14 @@ export const productSchema = z.object({
   images: z.array(z.string().url('Debe ser una URL válida')).default([]),
   campoTexto1: z.string().min(1, 'campoTexto1 es obligatorio'),
   campoNumero2: z.number(),
-  campoTextoGeneral: z.string().min(1, 'campoTextoGeneral es obligatorio'),
+  // Reutilizado para guardar los colores del producto como
+  // "Nombre:#hex,Nombre:#hex" (ver lib/product-colors.ts). Opcional: no
+  // todos los productos tienen variantes de color.
+  campoTextoGeneral: z.string().default(''),
   isActive: z.boolean().default(true),
 });
 
-// Banner del carrusel principal (home). imageUrl es una URL de Cloudinary,
+// Banner del carrusel principal (home). imageUrl es una URL de Supabase Storage,
 // igual que las imágenes de producto. title/subtitle/linkUrl son opcionales.
 export const bannerSchema = z.object({
   imageUrl: z.string().url('Debe ser una URL válida'),
@@ -52,6 +55,28 @@ export const contactSchema = z.object({
     .max(2000),
 });
 
+// Actualización masiva de precios (/admin/bulk-pricing). "categoryId" sirve
+// tanto para categorías principales como subcategorías (se matchea contra
+// categoryId O subCategoryId del producto, igual que en las vistas públicas).
+export const bulkPricingSchema = z
+  .object({
+    scope: z.enum(['category', 'manual', 'all']),
+    categoryId: z.string().optional(),
+    productIds: z.array(z.string()).optional(),
+    adjustmentType: z.enum(['percentage', 'fixed']),
+    value: z.number().refine(v => v !== 0, 'El valor no puede ser 0'),
+  })
+  .refine(data => data.scope !== 'category' || !!data.categoryId, {
+    message: 'Selecciona una categoría',
+    path: ['categoryId'],
+  })
+  .refine(
+    data =>
+      data.scope !== 'manual' ||
+      (data.productIds && data.productIds.length > 0),
+    { message: 'Selecciona al menos un producto', path: ['productIds'] }
+  );
+
 // Configuración de la tienda (singleton: solo debe existir una fila).
 // whatsappNumber en formato internacional sin "+" ni espacios (ej: 521234567890),
 // tal como lo requiere un enlace wa.me.
@@ -61,4 +86,7 @@ export const configuracionTiendaSchema = z.object({
     .min(8, 'Número muy corto')
     .max(15, 'Número muy largo')
     .regex(/^[0-9]+$/, 'Solo dígitos, sin "+" ni espacios ni guiones'),
+  // Barra de anuncio superior: texto libre, visible solo si showBanner es true.
+  bannerText: z.string().max(200).optional().or(z.literal('')),
+  showBanner: z.boolean().default(false),
 });

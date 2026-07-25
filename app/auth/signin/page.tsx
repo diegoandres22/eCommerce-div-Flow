@@ -1,10 +1,14 @@
 // File: app/auth/signin/page.tsx
+import Image from 'next/image';
+import { redirect } from 'next/navigation';
+import { AuthError } from 'next-auth';
 import { signIn } from '@/lib/auth';
-import { Button } from '@/components/ui/button';
+import { SubmitButton } from '@/components/ui/submit-button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { GoogleIcon } from '@/components/icons/google-icon';
+import { Logo } from '@/components/logo';
 
 async function signInWithGoogle() {
   'use server';
@@ -13,11 +17,21 @@ async function signInWithGoogle() {
 
 async function signInWithCredentials(formData: FormData) {
   'use server';
-  await signIn('credentials', {
-    username: formData.get('username'),
-    password: formData.get('password'),
-    redirectTo: '/admin',
-  });
+  try {
+    await signIn('credentials', {
+      username: formData.get('username'),
+      password: formData.get('password'),
+      redirectTo: '/admin',
+    });
+  } catch (error) {
+    // signIn() también usa "throw" para su propia redirección en el caso
+    // de éxito (NEXT_REDIRECT), así que solo interceptamos los errores
+    // reales de Auth.js y dejamos pasar cualquier otro throw.
+    if (error instanceof AuthError) {
+      redirect('/auth/signin?error=CredentialsSignin');
+    }
+    throw error;
+  }
 }
 
 export default function SignInPage({
@@ -26,12 +40,32 @@ export default function SignInPage({
   searchParams: { error?: string };
 }) {
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6 rounded-lg border p-8">
+    <div className="flex min-h-screen">
+      {/* Panel de imagen: solo visible md+, la imagen y el overlay no
+          afectan el formulario en absoluto. */}
+      <div className="relative hidden w-1/2 md:block">
+        <Image
+          src="/images/robot-login.jpg"
+          alt="Flow eCommerce"
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-black/10 to-black/40" />
+      </div>
+
+      <div className="flex w-full flex-col items-center justify-center gap-8 px-4 md:w-1/2">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Logo />
+          <h1 className="text-2xl font-bold sm:text-3xl">E-commerce Store</h1>
+        </div>
+
+        <div className="w-full max-w-sm space-y-6 rounded-lg border p-8">
         <div className="text-center">
-          <h1 className="text-xl font-bold">Acceso administrador</h1>
+          <h2 className="text-xl font-bold">Panel de Administrador</h2>
           <p className="text-sm text-muted-foreground">
-            Entra con el email autorizado o con la cuenta de prueba.
+            Entra con el email autorizado o con la cuenta
           </p>
         </div>
 
@@ -42,20 +76,20 @@ export default function SignInPage({
         )}
 
         <form action={signInWithGoogle}>
-          <Button
-            type="submit"
+          <SubmitButton
             variant="outline"
-            className="w-full gap-2 bg-white text-gray-700 hover:bg-gray-50 dark:bg-white dark:hover:bg-gray-100"
+            loadingText="Conectando..."
+            className="w-full bg-white text-gray-700 hover:bg-gray-50 dark:bg-white dark:hover:bg-gray-100"
           >
             <GoogleIcon className="h-5 w-5" />
             Entrar con Google
-          </Button>
+          </SubmitButton>
         </form>
 
         <div className="relative flex items-center">
           <div className="flex-1 border-t" />
           <span className="px-3 text-xs text-muted-foreground">
-            o cuenta de prueba
+            o cuenta
           </span>
           <div className="flex-1 border-t" />
         </div>
@@ -79,10 +113,15 @@ export default function SignInPage({
               autoComplete="current-password"
             />
           </div>
-          <Button type="submit" variant="outline" className="w-full">
-            Entrar como invitado
-          </Button>
+          <SubmitButton
+            variant="outline"
+            loadingText="Verificando..."
+            className="w-full"
+          >
+            Ingresar
+          </SubmitButton>
         </form>
+        </div>
       </div>
     </div>
   );

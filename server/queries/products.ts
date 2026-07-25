@@ -62,18 +62,22 @@ export async function getCategoriesWithActiveProducts(limitPerCategory = 10) {
   return categories.filter(category => category.products.length > 0);
 }
 
+// "También te puede interesar": misma categoría o misma subcategoría del
+// producto actual (si tiene), excluyéndolo. Máximo 4 por defecto.
 export async function getRelatedProducts(
   productId: string,
   categoryId: string,
+  subCategoryId?: string | null,
   limit = 4
 ) {
   return prisma.product.findMany({
     where: {
-      categoryId,
       isActive: true,
       NOT: { id: productId },
+      OR: [{ categoryId }, ...(subCategoryId ? [{ subCategoryId }] : [])],
     },
     include: withCategory,
+    orderBy: { createdAt: 'desc' },
     take: limit,
   });
 }

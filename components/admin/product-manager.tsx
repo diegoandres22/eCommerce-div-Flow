@@ -24,7 +24,9 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
-import { CloudinaryUploadButton } from '@/components/admin/cloudinary-upload-button';
+import { RequiredMark } from '@/components/ui/required-mark';
+import { ImageDropzone } from '@/components/admin/image-dropzone';
+import { ProductColorEditor } from '@/components/admin/product-color-editor';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +49,7 @@ const emptyForm = {
   price: '',
   categoryId: '',
   subCategoryId: '',
-  images: '',
+  images: [] as string[],
   campoTexto1: '',
   campoNumero2: '',
   campoTextoGeneral: '',
@@ -103,7 +105,7 @@ export function ProductManager({
       price: String(product.price),
       categoryId: product.categoryId,
       subCategoryId: product.subCategoryId || '',
-      images: product.images.join('\n'),
+      images: product.images,
       campoTexto1: product.campoTexto1,
       campoNumero2: String(product.campoNumero2),
       campoTextoGeneral: product.campoTextoGeneral,
@@ -122,10 +124,7 @@ export function ProductManager({
         price: parseFloat(form.price),
         categoryId: form.categoryId,
         subCategoryId: form.subCategoryId || null,
-        images: form.images
-          .split('\n')
-          .map(url => url.trim())
-          .filter(Boolean),
+        images: form.images,
         campoTexto1: form.campoTexto1,
         campoNumero2: parseFloat(form.campoNumero2),
         campoTextoGeneral: form.campoTextoGeneral,
@@ -195,10 +194,21 @@ export function ProductManager({
   return (
     <div className="space-y-4">
       {!showForm && (
-        <Button onClick={() => setShowForm(true)} disabled={categories.length === 0}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo producto
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button onClick={() => setShowForm(true)} disabled={categories.length === 0}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo producto
+          </Button>
+          <div className="relative sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nombre o categoría..."
+              className="pl-9"
+            />
+          </div>
+        </div>
       )}
       {categories.length === 0 && (
         <p className="text-sm text-muted-foreground">
@@ -209,7 +219,10 @@ export function ProductManager({
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-3 rounded-md border p-4">
           <div>
-            <Label htmlFor="name">Nombre</Label>
+            <Label htmlFor="name">
+              Nombre
+              <RequiredMark />
+            </Label>
             <Input
               id="name"
               value={form.name}
@@ -229,7 +242,10 @@ export function ProductManager({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <Label htmlFor="price">Precio</Label>
+              <Label htmlFor="price">
+                Precio
+                <RequiredMark />
+              </Label>
               <Input
                 id="price"
                 type="number"
@@ -242,7 +258,10 @@ export function ProductManager({
             </div>
 
             <div>
-              <Label>Categoría</Label>
+              <Label>
+                Categoría
+                <RequiredMark />
+              </Label>
               <Select
                 value={form.categoryId}
                 onValueChange={value =>
@@ -294,32 +313,22 @@ export function ProductManager({
           </div>
 
           <div>
-            <div className="mb-2 flex items-center justify-between">
-              <Label htmlFor="images">Imágenes (una URL de Cloudinary por línea)</Label>
-              <CloudinaryUploadButton
-                onUploaded={urls =>
-                  setForm(prev => ({
-                    ...prev,
-                    images: [prev.images, ...urls].filter(Boolean).join('\n'),
-                  }))
-                }
+            <Label>Imágenes</Label>
+            <div className="mt-2">
+              <ImageDropzone
+                images={form.images}
+                onChange={urls => setForm(prev => ({ ...prev, images: urls }))}
+                multiple
               />
             </div>
-            <textarea
-              id="images"
-              className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.images}
-              onChange={e => setForm({ ...form, images: e.target.value })}
-              placeholder={'https://res.cloudinary.com/...\nhttps://res.cloudinary.com/...'}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Sube desde el dispositivo con el botón, o pega URLs manualmente.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <Label htmlFor="campoTexto1">campoTexto1</Label>
+              <Label htmlFor="campoTexto1">
+                campoTexto1
+                <RequiredMark />
+              </Label>
               <Input
                 id="campoTexto1"
                 value={form.campoTexto1}
@@ -328,7 +337,10 @@ export function ProductManager({
               />
             </div>
             <div>
-              <Label htmlFor="campoNumero2">campoNumero2</Label>
+              <Label htmlFor="campoNumero2">
+                campoNumero2
+                <RequiredMark />
+              </Label>
               <Input
                 id="campoNumero2"
                 type="number"
@@ -341,13 +353,15 @@ export function ProductManager({
           </div>
 
           <div>
-            <Label htmlFor="campoTextoGeneral">campoTextoGeneral</Label>
-            <Input
-              id="campoTextoGeneral"
-              value={form.campoTextoGeneral}
-              onChange={e => setForm({ ...form, campoTextoGeneral: e.target.value })}
-              required
-            />
+            <Label>Colores disponibles (opcional)</Label>
+            <div className="mt-2">
+              <ProductColorEditor
+                value={form.campoTextoGeneral}
+                onChange={serialized =>
+                  setForm(prev => ({ ...prev, campoTextoGeneral: serialized }))
+                }
+              />
+            </div>
           </div>
 
           <label className="flex items-center gap-2 text-sm">
@@ -370,19 +384,11 @@ export function ProductManager({
         </form>
       )}
 
-      <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o categoría..."
-          className="pl-9"
-        />
-      </div>
-
+      {!showForm && (
+      <div className="overflow-hidden rounded-lg border border-border">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/80 dark:bg-muted/40 hover:bg-muted/80 [&_th]:font-semibold [&_th]:text-foreground">
             <TableHead>Nombre</TableHead>
             <TableHead>Categoría</TableHead>
             <TableHead>Subcategoría</TableHead>
@@ -426,6 +432,8 @@ export function ProductManager({
           ))}
         </TableBody>
       </Table>
+      </div>
+      )}
 
       <AlertDialog
         open={!!deleteTarget}
