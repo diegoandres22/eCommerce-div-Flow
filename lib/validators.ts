@@ -24,12 +24,12 @@ export const productSchema = z.object({
   // Opcional: debe ser hija directa de categoryId (se valida en la API).
   subCategoryId: z.string().nullable().optional(),
   images: z.array(z.string().url('Debe ser una URL válida')).default([]),
-  campoTexto1: z.string().min(1, 'campoTexto1 es obligatorio'),
-  campoNumero2: z.number(),
-  // Reutilizado para guardar los colores del producto como
-  // "Nombre:#hex,Nombre:#hex" (ver lib/product-colors.ts). Opcional: no
-  // todos los productos tienen variantes de color.
-  campoTextoGeneral: z.string().default(''),
+  marca: z.string().min(1, 'La marca es obligatoria'),
+  modelo: z.string().min(1, 'El modelo es obligatorio'),
+  // Colores del producto como "Nombre:#hex,Nombre:#hex" (ver
+  // lib/product-colors.ts). Opcional: no todos los productos tienen
+  // variantes de color.
+  colores: z.string().default(''),
   isActive: z.boolean().default(true),
   // Independiente de isActive: producto visible pero no comprable.
   isOutOfStock: z.boolean().default(false),

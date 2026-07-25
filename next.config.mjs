@@ -8,6 +8,12 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.supabase.co',
       },
+      // Solo para imágenes de prueba del seed de desarrollo (prisma/seed.ts).
+      // Quitar este bloque antes de pasar a producción con un cliente real.
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+      },
     ],
   },
   async rewrites() {

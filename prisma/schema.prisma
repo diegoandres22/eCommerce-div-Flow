@@ -95,9 +95,15 @@ model Product {
   price       Float
   images      String[]
 
-  campoTexto1       String
-  campoNumero2      Float
-  campoTextoGeneral String
+  // Antes "campoTexto1"/"campoNumero2" (nombres genéricos del MVP inicial),
+  // renombrados a su uso real. `modelo` pasó de Float a String: es texto
+  // libre ("Galaxy S23", "Air Max 90"), no un valor numérico.
+  marca   String
+  modelo  String
+  // Colores del producto serializados como "Nombre:#hex,Nombre:#hex"
+  // (ver lib/product-colors.ts). Opcional en la práctica: un producto sin
+  // variantes de color guarda "".
+  colores String
 
   views     Int      @default(0)
   isActive  Boolean  @default(true)
@@ -149,7 +155,26 @@ model BrokenLink {
   lastSeenAt  DateTime @default(now())
 
   @@index([hits])
+  @@index([lastSeenAt])
   @@map("broken_links")
+}
+
+// Contraparte "en positivo" de BrokenLink: mismo mecanismo de upsert
+// (path -> +1 hit) pero para rutas que SÍ resolvieron con éxito, registradas
+// desde app/(store)/layout.tsx -- que envuelve todo el sitio público, pero
+// no a app/not-found.tsx (vive fuera del route group (store), así que un
+// 404 nunca termina sumando acá por accidente). Sirve para ver a dónde va
+// el usuario mayormente, sin mezclarse con el reporte de enlaces caídos.
+model PageVisit {
+  id          String   @id @default(cuid())
+  path        String   @unique
+  hits        Int      @default(1)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([hits])
+  @@index([lastSeenAt])
+  @@map("page_visits")
 }
 
 // --- Configuración de la Tienda ---

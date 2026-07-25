@@ -1,6 +1,7 @@
 // File: app/(store)/products/[id]/page.tsx
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import type { Product as ProductJsonLd, WithContext } from 'schema-dts';
 import { SmartImage } from '@/components/ui/smart-image';
@@ -18,7 +19,8 @@ import { TrackRecentlyViewed } from '@/components/track-recently-viewed';
 import { ProductColorSwatches } from '@/components/product-color-swatches';
 import { TrustBadges } from '@/components/trust-badges';
 import { parseProductColors } from '@/lib/product-colors';
-import { formatPrice, formatNumber } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
+import { isPrefetchRequest } from '@/lib/route-tracking';
 
 interface ProductPageProps {
   params: { id: string };
@@ -51,8 +53,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  // Fire-and-forget: no bloquea el render de la página.
-  incrementProductViews(product.id);
+  // Fire-and-forget: no bloquea el render de la página. Se descartan los
+  // prefetches silenciosos de Next.js (ver lib/route-tracking.ts) para que
+  // una sola visita real sume exactamente una vista, no dos.
+  const headersList = await headers();
+  if (!isPrefetchRequest(headersList)) {
+    incrementProductViews(product.id);
+  }
 
   const relatedProducts = await getRelatedProducts(
     product.id,
@@ -61,7 +68,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   );
 
   const productUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/products/${product.id}`;
-  const colors = parseProductColors(product.campoTextoGeneral);
+  const colors = parseProductColors(product.colores);
 
   // Datos estructurados para resultados enriquecidos de Google (precio,
   // disponibilidad, imagen) en la ficha de producto.
@@ -197,14 +204,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
           <div className="grid grid-cols-2 gap-3 rounded-lg border p-4 text-sm">
             <div>
-              <p className="text-muted-foreground">Detalle</p>
-              <p className="font-medium">{product.campoTexto1}</p>
+              <p className="text-muted-foreground">Marca</p>
+              <p className="font-medium">{product.marca}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Valor de referencia</p>
-              <p className="font-medium">
-                {formatNumber(Number(product.campoNumero2))}
-              </p>
+              <p className="text-muted-foreground">Modelo</p>
+              <p className="font-medium">{product.modelo}</p>
             </div>
           </div>
         </div>

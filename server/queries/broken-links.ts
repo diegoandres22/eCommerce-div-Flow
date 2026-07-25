@@ -16,7 +16,7 @@ export async function logBrokenLink(path: string) {
 
 export async function getTopBrokenLinks(limit = 5) {
   return prisma.brokenLink.findMany({
-    orderBy: { hits: 'desc' },
+    orderBy: { lastSeenAt: 'desc' },
     take: limit,
   });
 }

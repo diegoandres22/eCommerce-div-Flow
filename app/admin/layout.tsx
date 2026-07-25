@@ -17,9 +17,17 @@ export default async function AdminLayout({
   const user = await requireAdmin();
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar (desktop) */}
-      <aside className="hidden w-64 flex-col border-r bg-card lg:flex">
+    // h-dvh (no min-h-screen) + overflow-hidden: el contenedor raíz queda
+    // fijado exactamente al alto del viewport, así el <main> de abajo es el
+    // único que puede crecer más que su caja y generar scroll propio. Con
+    // min-h-screen el contenedor podía crecer más alto que la pantalla y
+    // terminaba scrolleando la página entera (sidebar y header incluidos)
+    // en vez de solo el contenido. Layout fijo: cualquier página nueva de
+    // /admin/* hereda este comportamiento sin hacer nada extra, siempre que
+    // no agregue su propio contenedor con scroll.
+    <div className="flex h-dvh overflow-hidden bg-background">
+      {/* Sidebar (desktop): fijo, con scroll propio solo si el nav creciera más que la pantalla. */}
+      <aside className="hidden w-64 flex-col overflow-y-auto border-r bg-card lg:flex">
         <div className="p-6">
           <Link href="/admin" className="flex items-center gap-2 text-xl font-bold">
             <Logo />
@@ -46,9 +54,9 @@ export default async function AdminLayout({
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Columna derecha: header fijo (shrink-0) + main con el único scroll vertical del panel. */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between gap-3 border-b bg-card px-4 py-3 lg:px-6">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-card px-4 py-3 lg:px-6">
           <div className="flex flex-1 items-center gap-3">
             <div className="flex shrink-0 items-center gap-2">
               <AdminMobileNav />
@@ -67,7 +75,7 @@ export default async function AdminLayout({
           <ThemeToggle />
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6">{children}</div>
         </main>
       </div>

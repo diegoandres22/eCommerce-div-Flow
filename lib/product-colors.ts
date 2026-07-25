@@ -5,11 +5,11 @@ export interface ProductColor {
   hex: string;
 }
 
-// Reutiliza el campo genérico `campoTextoGeneral` (String simple en el
-// modelo Product de Prisma) para guardar la lista de colores del producto,
-// sin necesitar una migración ni una tabla de variantes real. Formato:
-// "Nombre:#hex,Nombre:#hex" (ej. "Negro:#171717,Blanco:#FFFFFF"). Es
-// opcional: un producto sin colores simplemente guarda "" en ese campo.
+// El campo `colores` (String simple en el modelo Product de Prisma) guarda
+// la lista de colores del producto serializada como texto, sin necesitar
+// una tabla de variantes real. Formato: "Nombre:#hex,Nombre:#hex" (ej.
+// "Negro:#171717,Blanco:#FFFFFF"). Es opcional: un producto sin colores
+// simplemente guarda "" en ese campo.
 const ITEM_SEPARATOR = ',';
 const PAIR_SEPARATOR = ':';
 const HEX_PATTERN = /^#[0-9a-fA-F]{3,8}$/;

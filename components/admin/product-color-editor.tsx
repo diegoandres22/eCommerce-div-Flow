@@ -11,9 +11,9 @@ import {
   type ProductColor,
 } from '@/lib/product-colors';
 
-// Editor de colores del producto (opcional, "cuando aplique"). Reutiliza
-// `campoTextoGeneral` -- un string simple del schema -- serializando la
-// lista como "Nombre:#hex,Nombre:#hex". El componente remonta cada vez que
+// Editor de colores del producto (opcional, "cuando aplique"). Serializa
+// el campo `colores` (un string simple del schema) como
+// "Nombre:#hex,Nombre:#hex". El componente remonta cada vez que
 // se abre el formulario (ver product-manager.tsx), así que inicializar el
 // estado local a partir de `value` una sola vez es seguro.
 export function ProductColorEditor({

@@ -4,7 +4,7 @@ Evaluación del backend, esquema de datos y validadores actuales, con una propue
 
 ## 1. Punto de partida: qué ya existe y qué restringe el diseño
 
-El modelo `Product` (`prisma/schema.prisma`) no tiene SKU ni control de stock (por diseño, ver "Exclusiones actuales" del proyecto): los campos obligatorios son `name`, `price`, `categoryId`, `campoTexto1` y `campoNumero2`; `description`, `subCategoryId` y `campoTextoGeneral` (colores) son opcionales. `images` es un array de URLs de texto — no hay upload de binarios embebido en el modelo, las imágenes ya están subidas a Supabase Storage *antes* de que el producto se guarde.
+El modelo `Product` (`prisma/schema.prisma`) no tiene SKU ni control de stock (por diseño, ver "Exclusiones actuales" del proyecto): los campos obligatorios son `name`, `price`, `categoryId`, `marca` y `modelo`; `description`, `subCategoryId` y `colores` son opcionales. `images` es un array de URLs de texto — no hay upload de binarios embebido en el modelo, las imágenes ya están subidas a Supabase Storage *antes* de que el producto se guarde.
 
 `lib/validators.ts#productSchema` es el único lugar que define qué es un producto válido (precio > 0, categoría obligatoria, imágenes que sean URLs bien formadas, etc.) y ya lo usan tanto `app/api/admin/products/route.ts` como `[id]/route.ts`. Cualquier importación masiva debe pasar por este mismo schema fila por fila — no por uno paralelo — para que un producto cargado por Excel sea indistinguible de uno cargado a mano.
 
@@ -35,9 +35,9 @@ Mapeadas 1 a 1 contra `productSchema`, en español para que el cliente las entie
 | Precio | `price` | número, > 0 |
 | Categoría | `categoryId` | por **nombre**, se resuelve a id (ver más abajo) |
 | Subcategoría | `subCategoryId` | opcional, por nombre, debe ser hija de Categoría |
-| Detalle | `campoTexto1` | obligatorio |
-| Valor de referencia | `campoNumero2` | número |
-| Colores | `campoTextoGeneral` | opcional, formato `Nombre:#hex,Nombre:#hex` (reutiliza `lib/product-colors.ts` tal cual) |
+| Marca | `marca` | obligatorio |
+| Modelo | `modelo` | obligatorio |
+| Colores | `colores` | opcional, formato `Nombre:#hex,Nombre:#hex` (reutiliza `lib/product-colors.ts` tal cual) |
 | Imágenes | `images` | URLs separadas por coma o punto y coma (ver sección 4) |
 | Activo | `isActive` | `SI`/`NO` |
 | Agotado | `isOutOfStock` | `SI`/`NO` |

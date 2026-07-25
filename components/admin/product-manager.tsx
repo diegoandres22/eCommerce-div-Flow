@@ -51,9 +51,9 @@ const emptyForm = {
   categoryId: '',
   subCategoryId: '',
   images: [] as string[],
-  campoTexto1: '',
-  campoNumero2: '',
-  campoTextoGeneral: '',
+  marca: '',
+  modelo: '',
+  colores: '',
   isActive: true,
   isOutOfStock: false,
 };
@@ -108,9 +108,9 @@ export function ProductManager({
       categoryId: product.categoryId,
       subCategoryId: product.subCategoryId || '',
       images: product.images,
-      campoTexto1: product.campoTexto1,
-      campoNumero2: String(product.campoNumero2),
-      campoTextoGeneral: product.campoTextoGeneral,
+      marca: product.marca,
+      modelo: product.modelo,
+      colores: product.colores,
       isActive: product.isActive,
       isOutOfStock: product.isOutOfStock,
     });
@@ -128,9 +128,9 @@ export function ProductManager({
         categoryId: form.categoryId,
         subCategoryId: form.subCategoryId || null,
         images: form.images,
-        campoTexto1: form.campoTexto1,
-        campoNumero2: parseFloat(form.campoNumero2),
-        campoTextoGeneral: form.campoTextoGeneral,
+        marca: form.marca,
+        modelo: form.modelo,
+        colores: form.colores,
         isActive: form.isActive,
         isOutOfStock: form.isOutOfStock,
       };
@@ -329,28 +329,28 @@ export function ProductManager({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <Label htmlFor="campoTexto1">
-                campoTexto1
+              <Label htmlFor="marca">
+                Marca
                 <RequiredMark />
               </Label>
               <Input
-                id="campoTexto1"
-                value={form.campoTexto1}
-                onChange={e => setForm({ ...form, campoTexto1: e.target.value })}
+                id="marca"
+                value={form.marca}
+                onChange={e => setForm({ ...form, marca: e.target.value })}
+                placeholder="Ej: Samsung"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="campoNumero2">
-                campoNumero2
+              <Label htmlFor="modelo">
+                Modelo
                 <RequiredMark />
               </Label>
               <Input
-                id="campoNumero2"
-                type="number"
-                step="any"
-                value={form.campoNumero2}
-                onChange={e => setForm({ ...form, campoNumero2: e.target.value })}
+                id="modelo"
+                value={form.modelo}
+                onChange={e => setForm({ ...form, modelo: e.target.value })}
+                placeholder="Ej: Galaxy S23"
                 required
               />
             </div>
@@ -361,9 +361,9 @@ export function ProductManager({
               <Label>Colores disponibles (opcional)</Label>
               <div className="mt-2">
                 <ProductColorEditor
-                  value={form.campoTextoGeneral}
+                  value={form.colores}
                   onChange={serialized =>
-                    setForm(prev => ({ ...prev, campoTextoGeneral: serialized }))
+                    setForm(prev => ({ ...prev, colores: serialized }))
                   }
                 />
               </div>
