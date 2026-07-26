@@ -1,13 +1,22 @@
 // File: components/admin/category-manager.tsx
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Category } from '@prisma/client';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import type { ColumnDef, Table as TanstackTable } from '@tanstack/react-table';
+import {
+  Pencil,
+  Trash2,
+  Plus,
+  FolderTree,
+  CornerDownRight,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -15,16 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter';
 import { useToast } from '@/components/ui/use-toast';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,6 +71,35 @@ export function CategoryManager({
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+
+  // Orden por defecto: cada categoría principal seguida de sus
+  // subcategorías (agrupadas), no alfabético plano -- así la jerarquía se
+  // lee de un vistazo antes de que el usuario toque un header para ordenar.
+  const groupedCategories = useMemo(() => {
+    const mains = categories
+      .filter(c => !c.parentId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const result: Category[] = [];
+    for (const main of mains) {
+      result.push(main);
+      const subs = categories
+        .filter(c => c.parentId === main.id)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      result.push(...subs);
+    }
+    // Salvaguarda: subcategorías cuyo padre no está en la lista (no debería
+    // pasar, pero así no desaparecen silenciosamente de la tabla).
+    const includedIds = new Set(result.map(c => c.id));
+    const orphans = categories.filter(c => !includedIds.has(c.id));
+    return [...result, ...orphans];
+  }, [categories]);
+
+  const parentNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [categories]);
 
   const resetForm = () => {
     setEditing(null);
@@ -153,15 +187,153 @@ export function CategoryManager({
     router.refresh();
   };
 
-  return (
-    <div className="space-y-4">
-      {!showForm && (
+  const columns = useMemo<ColumnDef<Category>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Nombre" />
+        ),
+        cell: ({ row }) => {
+          const category = row.original;
+          const isSub = !!category.parentId;
+          return (
+            <div className={cn('flex items-center gap-2', isSub && 'pl-6')}>
+              {isSub ? (
+                <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              ) : (
+                <FolderTree className="h-3.5 w-3.5 shrink-0 text-primary" />
+              )}
+              <span className={isSub ? 'text-muted-foreground' : 'font-medium'}>
+                {category.name}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'slug',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Slug" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="font-mono text-xs text-muted-foreground">
+            {getValue<string>()}
+          </span>
+        ),
+      },
+      {
+        id: 'tipo',
+        accessorFn: category => (category.parentId ? 'subcategoria' : 'principal'),
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Tipo" />
+        ),
+        filterFn: (row, id, value: string[]) =>
+          value.includes(row.getValue<string>(id)),
+        cell: ({ row }) => {
+          const category = row.original;
+          if (!category.parentId) {
+            return (
+              <Badge className="w-fit gap-1 font-normal">
+                <FolderTree className="h-3 w-3" />
+                Principal
+              </Badge>
+            );
+          }
+          return (
+            <div className="flex flex-col gap-1">
+              <Badge
+                variant="outline"
+                className="w-fit gap-1 font-normal text-muted-foreground"
+              >
+                <CornerDownRight className="h-3 w-3" />
+                Subcategoría
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                de {parentNameById.get(category.parentId) || '—'}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'acciones',
+        header: () => <div className="text-right">Acciones</div>,
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => startEdit(row.original)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setDeleteTarget(row.original)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    // parentNameById se recalcula con `categories`, así que basta con
+    // depender de esa referencia para mantener las celdas al día.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [parentNameById]
+  );
+
+  const renderToolbar = (table: TanstackTable<Category>) => {
+    const hasFilters =
+      table.getState().columnFilters.length > 0 ||
+      !!table.getState().globalFilter;
+
+    return (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <Input
+            placeholder="Buscar por nombre o slug..."
+            value={(table.getState().globalFilter as string) ?? ''}
+            onChange={e => table.setGlobalFilter(e.target.value)}
+            className="h-9 max-w-xs"
+          />
+          <DataTableFacetedFilter
+            column={table.getColumn('tipo')}
+            title="Tipo"
+            options={[
+              { label: 'Principal', value: 'principal' },
+              { label: 'Subcategoría', value: 'subcategoria' },
+            ]}
+          />
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9"
+              onClick={() => {
+                table.resetColumnFilters();
+                table.setGlobalFilter('');
+              }}
+            >
+              Limpiar
+              <X className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Nueva categoría
         </Button>
-      )}
+      </div>
+    );
+  };
 
+  return (
+    <div className="space-y-4">
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-3 rounded-md border p-4">
           <div>
@@ -222,57 +394,13 @@ export function CategoryManager({
       )}
 
       {!showForm && (
-      <div className="overflow-hidden rounded-lg border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/80 dark:bg-muted/40 hover:bg-muted/80 [&_th]:font-semibold [&_th]:text-foreground">
-            <TableHead>Nombre</TableHead>
-            <TableHead>Slug</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead className="text-right">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {categories.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className="text-center text-muted-foreground"
-              >
-                Sin categorías todavía.
-              </TableCell>
-            </TableRow>
-          )}
-          {categories.map(category => (
-            <TableRow key={category.id}>
-              <TableCell>{category.name}</TableCell>
-              <TableCell>{category.slug}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {category.parentId
-                  ? `Sub de ${categories.find(c => c.id === category.parentId)?.name || '—'}`
-                  : 'Principal'}
-              </TableCell>
-              <TableCell className="flex justify-end gap-2">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => startEdit(category)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setDeleteTarget(category)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      </div>
+        <DataTable
+          columns={columns}
+          data={groupedCategories}
+          toolbar={renderToolbar}
+          emptyMessage="Sin categorías todavía."
+          getRowId={category => category.id}
+        />
       )}
 
       <AlertDialog

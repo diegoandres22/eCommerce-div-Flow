@@ -44,9 +44,11 @@ export function WhatsappSettingsForm({
         body: JSON.stringify({
           whatsappNumber: whatsappNumber.replace(/\D/g, ''),
           // Se reenvían tal cual estaban: esta página no debe pisar el
-          // banner de anuncios, que ahora se guarda desde otra pantalla.
+          // banner de anuncios ni el switch de stock, que se guardan desde
+          // otras pantallas.
           bannerText: initialConfig?.bannerText || '',
           showBanner: initialConfig?.showBanner || false,
+          controlStockActivo: initialConfig?.controlStockActivo || false,
         }),
       });
       const data = await res.json();

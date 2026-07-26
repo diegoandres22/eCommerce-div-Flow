@@ -105,7 +105,13 @@ export function ImageDropzone({
               key={url}
               className="group relative aspect-square overflow-hidden rounded-lg border bg-muted"
             >
-              <SmartImage src={url} alt="Imagen subida" fill className="object-cover" />
+              <SmartImage
+                src={url}
+                alt="Imagen subida"
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 33vw, 25vw"
+              />
               <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                 <Button
                   type="button"

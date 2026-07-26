@@ -107,10 +107,22 @@ model Product {
 
   views     Int      @default(0)
   isActive  Boolean  @default(true)
+  // Manual, usado solo cuando ConfiguracionTienda.controlStockActivo está
+  // apagado (comportamiento original del MVP, sin conteo de stock).
   // Independiente de isActive: el producto sigue visible/indexable, pero
-  // no se puede agregar al carrito. No es control de inventario (sin
-  // conteo de stock), es solo un interruptor de disponibilidad.
+  // no se puede agregar al carrito.
   isOutOfStock Boolean @default(false)
+
+  // --- Módulo de stock (opcional, activable vía controlStockActivo) ---
+  // `stock`: cantidad disponible. Para productos sin colores es el número
+  // que edita el admin directamente. Para productos con colores, es la suma
+  // calculada de `colorStocks` (no se edita a mano en ese caso) -- así el
+  // agregado nunca queda desincronizado del detalle por color.
+  stock       Int @default(0)
+  // Umbral para la alerta de "stock bajo" en el dashboard.
+  stockMinimo Int @default(3)
+  colorStocks ProductColorStock[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -126,20 +138,53 @@ model Product {
   @@map("products")
 }
 
+// Stock por color, solo para productos que tienen `colores` definido (ver
+// lib/product-colors.ts). `colorName` referencia el nombre del color tal
+// cual está en el string serializado -- por nombre, no por índice, para no
+// romperse si el admin reordena los colores. Un producto sin colores no usa
+// esta tabla: su stock vive directo en `Product.stock`.
+model ProductColorStock {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  colorName String
+  stock     Int     @default(0)
+
+  @@unique([productId, colorName])
+  @@map("product_color_stock")
+}
+
 // Registro de intención de compra: se crea justo antes de redirigir al
 // cliente a WhatsApp (ver lib/whatsapp.ts + cart-checkout.tsx), sin
 // bloquear ni modificar ese flujo. No es un pedido con estados de envío ni
 // un modelo de pagos -- es solo un rastro para que el admin sepa qué se
 // cotizó, cuándo, y por cuánto, ya que WhatsApp por sí solo no deja ningún
 // registro consultable desde el panel.
+//
+// `estado`: como no hay pasarela de pago, el clic en "Pedir por WhatsApp"
+// NO implica que la venta se concretó. El descuento de stock (cuando
+// ConfiguracionTienda.controlStockActivo está activo) ocurre recién cuando
+// el admin confirma la venta manualmente desde /admin/leads -- ver
+// app/api/admin/leads/[id]/route.ts. `pendiente` es el estado inicial de
+// todo lead nuevo; `confirmado` ya descontó stock; `cancelado` es un
+// pendiente rechazado (sin efecto en stock) o una venta confirmada que se
+// revirtió (repone el stock que se había descontado).
 model Lead {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   items       Json
   totalAmount Float
-  createdAt   DateTime @default(now())
+  estado      LeadEstado @default(pendiente)
+  createdAt   DateTime   @default(now())
 
   @@index([createdAt])
+  @@index([estado])
   @@map("leads")
+}
+
+enum LeadEstado {
+  pendiente
+  confirmado
+  cancelado
 }
 
 // Registro de enlaces rotos: cada vez que se renderiza app/not-found.tsx se
@@ -184,6 +229,10 @@ model ConfiguracionTienda {
   whatsappNumber String
   bannerText     String?
   showBanner     Boolean @default(false)
+  // Interruptor global del módulo de stock (ver Product.stock/stockMinimo,
+  // ProductColorStock, Lead.estado). Apagado = comportamiento original del
+  // MVP (isOutOfStock manual, sin descuentos ni validaciones de cantidad).
+  controlStockActivo Boolean @default(false)
 
   @@map("configuracion_tienda")
 }

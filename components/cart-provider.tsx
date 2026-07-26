@@ -7,19 +7,34 @@ export interface CartProduct {
   name: string;
   price: number;
   images: string[];
+  // Color elegido en la ficha de producto (ver product-purchase-panel.tsx),
+  // solo si el producto tiene colores definidos. Viaja con el ítem del
+  // carrito hasta el Lead, para que la confirmación de venta en
+  // /admin/leads sepa de qué color descontar stock (ver
+  // app/api/admin/leads/[id]/route.ts) en vez de descontar siempre del
+  // agregado del producto.
+  colorName?: string;
 }
 
 export interface CartItem {
   productId: string;
+  colorName?: string;
   quantity: number;
   product: CartProduct;
+}
+
+// Dos colores del mismo producto son líneas de carrito distintas -- se
+// identifican por la combinación productId + colorName, no solo por
+// productId (antes de sumar colores, productId alcanzaba como identidad).
+function sameLine(item: CartItem, productId: string, colorName?: string) {
+  return item.productId === productId && (item.colorName ?? undefined) === (colorName ?? undefined);
 }
 
 interface CartContextType {
   items: CartItem[];
   addItem: (product: CartProduct, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (productId: string, colorName?: string) => void;
+  updateQuantity: (productId: string, quantity: number, colorName?: string) => void;
   clearCart: () => void;
   totalAmount: number;
   totalItems: number;
@@ -55,26 +70,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = (product: CartProduct, quantity = 1) => {
     setItems(prev => {
-      const existing = prev.find(i => i.productId === product.id);
+      const existing = prev.find(i => sameLine(i, product.id, product.colorName));
       if (existing) {
         return prev.map(i =>
-          i.productId === product.id
+          sameLine(i, product.id, product.colorName)
             ? { ...i, quantity: i.quantity + quantity }
             : i
         );
       }
-      return [...prev, { productId: product.id, quantity, product }];
+      return [
+        ...prev,
+        { productId: product.id, colorName: product.colorName, quantity, product },
+      ];
     });
   };
 
-  const removeItem = (productId: string) => {
-    setItems(prev => prev.filter(i => i.productId !== productId));
+  const removeItem = (productId: string, colorName?: string) => {
+    setItems(prev => prev.filter(i => !sameLine(i, productId, colorName)));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (
+    productId: string,
+    quantity: number,
+    colorName?: string
+  ) => {
     if (quantity < 1) return;
     setItems(prev =>
-      prev.map(i => (i.productId === productId ? { ...i, quantity } : i))
+      prev.map(i => (sameLine(i, productId, colorName) ? { ...i, quantity } : i))
     );
   };
 

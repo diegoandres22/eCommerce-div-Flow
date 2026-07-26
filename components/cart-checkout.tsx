@@ -44,6 +44,7 @@ export function CartCheckout({
         whatsappNumber,
         items.map(item => ({
           name: item.product.name,
+          colorName: item.colorName,
           quantity: item.quantity,
           price: item.product.price,
         })),
@@ -53,7 +54,10 @@ export function CartCheckout({
 
   // Fire-and-forget: deja un registro de la intención de compra sin
   // bloquear ni retrasar la apertura de WhatsApp. Si falla (red, servidor),
-  // el cliente igual llega a WhatsApp con normalidad.
+  // el cliente igual llega a WhatsApp con normalidad. `colorName` viaja acá
+  // para que, si el admin confirma la venta en /admin/leads, el descuento de
+  // stock sepa de qué color puntual restar (ver
+  // app/api/admin/leads/[id]/route.ts) en vez de siempre el agregado.
   const logLead = () => {
     fetch('/api/leads', {
       method: 'POST',
@@ -62,6 +66,7 @@ export function CartCheckout({
         items: items.map(item => ({
           productId: item.productId,
           name: item.product.name,
+          colorName: item.colorName,
           price: item.product.price,
           quantity: item.quantity,
         })),
@@ -81,7 +86,7 @@ export function CartCheckout({
         <div className="space-y-4 lg:col-span-2">
           {items.map(item => (
             <div
-              key={item.productId}
+              key={`${item.productId}-${item.colorName ?? ''}`}
               className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center"
             >
               <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
@@ -101,6 +106,11 @@ export function CartCheckout({
                 >
                   {item.product.name}
                 </Link>
+                {item.colorName && (
+                  <p className="text-xs text-muted-foreground">
+                    Color: {item.colorName}
+                  </p>
+                )}
                 <p className="mt-1 font-semibold">
                   {formatPrice(item.product.price)}
                 </p>
@@ -111,7 +121,7 @@ export function CartCheckout({
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    updateQuantity(item.productId, item.quantity - 1)
+                    updateQuantity(item.productId, item.quantity - 1, item.colorName)
                   }
                   disabled={item.quantity <= 1}
                 >
@@ -122,7 +132,7 @@ export function CartCheckout({
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    updateQuantity(item.productId, item.quantity + 1)
+                    updateQuantity(item.productId, item.quantity + 1, item.colorName)
                   }
                 >
                   <Plus className="h-4 w-4" />
@@ -136,7 +146,7 @@ export function CartCheckout({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => removeItem(item.productId)}
+                  onClick={() => removeItem(item.productId, item.colorName)}
                   className="text-red-600 hover:text-red-700"
                 >
                   <Trash2 className="mr-1 h-4 w-4" />

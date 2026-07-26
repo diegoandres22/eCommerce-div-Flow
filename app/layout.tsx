@@ -79,7 +79,12 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <NextTopLoader color="hsl(var(--primary))" showSpinner={false} height={3} />
+        {/* Color fijo (no ligado a --primary): el banner de anuncios usa
+            bg-primary, y con el primario actual (#1c1917, casi negro) la
+            barra de carga quedaba invisible sobre él. Un color propio, ajeno
+            a la paleta de marca, garantiza contraste tanto sobre el banner
+            negro como sobre el fondo claro/oscuro del resto del sitio. */}
+        <NextTopLoader color="#f59e0b" showSpinner={false} height={3} />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <CartProvider>
             <WishlistProvider>

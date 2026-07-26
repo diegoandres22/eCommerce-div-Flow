@@ -6,6 +6,8 @@ import { ProductGridSkeleton } from '@/components/product-grid-skeleton';
 import { ProductFilters } from '@/components/product-filters';
 import { Pagination } from '@/components/pagination';
 import { getActiveProducts, type ProductSort } from '@/server/queries/products';
+import { getStockConfig } from '@/server/queries/settings';
+import { withEffectiveStock } from '@/lib/stock';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -14,30 +16,35 @@ export const metadata: Metadata = {
   title: 'Productos',
 };
 
+// Next.js 15: searchParams es una Promise, hay que resolverla antes de leer
+// sus propiedades (ver nextjs.org/docs/messages/sync-dynamic-apis).
 interface ProductsPageProps {
-  searchParams: {
+  searchParams: Promise<{
     sort?: string;
     minPrice?: string;
     maxPrice?: string;
     categoryId?: string;
     subCategoryId?: string;
     page?: string;
-  };
+  }>;
 }
 
 async function AllProducts({ searchParams }: ProductsPageProps) {
-  const [{ products, totalCount, totalPages, page }, categories] =
+  const params = await searchParams;
+  const [{ products, totalCount, totalPages, page }, categories, { controlStockActivo }] =
     await Promise.all([
       getActiveProducts({
-        sort: searchParams.sort as ProductSort | undefined,
-        minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
-        maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined,
-        categoryId: searchParams.categoryId,
-        subCategoryId: searchParams.subCategoryId,
-        page: searchParams.page ? Number(searchParams.page) : 1,
+        sort: params.sort as ProductSort | undefined,
+        minPrice: params.minPrice ? Number(params.minPrice) : undefined,
+        maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
+        categoryId: params.categoryId,
+        subCategoryId: params.subCategoryId,
+        page: params.page ? Number(params.page) : 1,
       }),
       prisma.category.findMany({ orderBy: { name: 'asc' } }),
+      getStockConfig(),
     ]);
+  const effectiveProducts = withEffectiveStock(products, controlStockActivo);
 
   return (
     <>
@@ -45,7 +52,7 @@ async function AllProducts({ searchParams }: ProductsPageProps) {
         <ProductFilters totalCount={totalCount} categories={categories} />
       </Suspense>
       <div className="mt-6">
-        <ProductGrid products={products} />
+        <ProductGrid products={effectiveProducts} />
       </div>
       <Suspense fallback={null}>
         <Pagination page={page} totalPages={totalPages} />

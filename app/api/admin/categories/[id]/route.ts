@@ -5,8 +5,9 @@ import { categorySchema } from '@/lib/validators';
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const body = await req.json();
   const parsed = categorySchema.partial().safeParse(body);
 
@@ -18,7 +19,7 @@ export async function PATCH(
   }
 
   if (parsed.data.parentId) {
-    if (parsed.data.parentId === params.id) {
+    if (parsed.data.parentId === id) {
       return NextResponse.json(
         { error: 'Una categoría no puede ser su propia subcategoría' },
         { status: 400 }
@@ -34,7 +35,7 @@ export async function PATCH(
       );
     }
     const hasChildren = await prisma.category.count({
-      where: { parentId: params.id },
+      where: { parentId: id },
     });
     if (hasChildren > 0) {
       return NextResponse.json(
@@ -47,7 +48,7 @@ export async function PATCH(
   if (parsed.data.slug || parsed.data.name) {
     const duplicate = await prisma.category.findFirst({
       where: {
-        NOT: { id: params.id },
+        NOT: { id },
         OR: [
           parsed.data.name ? { name: parsed.data.name } : undefined,
           parsed.data.slug ? { slug: parsed.data.slug } : undefined,
@@ -63,7 +64,7 @@ export async function PATCH(
   }
 
   const category = await prisma.category.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
   return NextResponse.json(category);
@@ -71,13 +72,14 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const [productsCount, childrenCount] = await Promise.all([
     prisma.product.count({
-      where: { OR: [{ categoryId: params.id }, { subCategoryId: params.id }] },
+      where: { OR: [{ categoryId: id }, { subCategoryId: id }] },
     }),
-    prisma.category.count({ where: { parentId: params.id } }),
+    prisma.category.count({ where: { parentId: id } }),
   ]);
 
   if (productsCount > 0) {
@@ -94,6 +96,6 @@ export async function DELETE(
     );
   }
 
-  await prisma.category.delete({ where: { id: params.id } });
+  await prisma.category.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

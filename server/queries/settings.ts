@@ -13,3 +13,11 @@ export async function getStoreBanner() {
     showBanner: config?.showBanner ?? false,
   };
 }
+
+// Interruptor global del módulo de stock -- lo consulta cada página pública
+// que necesita saber si debe mostrar disponibilidad real (stock) o el
+// comportamiento manual de siempre (isOutOfStock). Ver lib/stock.ts.
+export async function getStockConfig() {
+  const config = await prisma.configuracionTienda.findFirst();
+  return { controlStockActivo: config?.controlStockActivo ?? false };
+}

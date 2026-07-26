@@ -96,7 +96,7 @@ export function CartDrawer() {
             <div className="flex-1 space-y-4 overflow-y-auto py-4">
               {items.map(item => (
                 <div
-                  key={item.productId}
+                  key={`${item.productId}-${item.colorName ?? ''}`}
                   className="flex items-center space-x-4 rounded-lg border p-4"
                 >
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -118,6 +118,11 @@ export function CartDrawer() {
                         {item.product.name}
                       </h4>
                     </Link>
+                    {item.colorName && (
+                      <p className="text-xs text-muted-foreground">
+                        Color: {item.colorName}
+                      </p>
+                    )}
                     <p className="mt-1 text-sm font-semibold">
                       {formatCurrency(item.product.price)}
                     </p>
@@ -127,7 +132,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity - 1)
+                          updateQuantity(item.productId, item.quantity - 1, item.colorName)
                         }
                         disabled={item.quantity <= 1}
                         className="h-6 w-6"
@@ -141,7 +146,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity + 1)
+                          updateQuantity(item.productId, item.quantity + 1, item.colorName)
                         }
                         className="h-6 w-6"
                       >
@@ -154,7 +159,7 @@ export function CartDrawer() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeItem(item.productId, item.colorName)}
                       className="h-6 w-6 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />

@@ -34,11 +34,14 @@ async function signInWithCredentials(formData: FormData) {
   }
 }
 
-export default function SignInPage({
+export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  // Next.js 15: searchParams es una Promise, hay que resolverla antes de leer
+  // sus propiedades (ver nextjs.org/docs/messages/sync-dynamic-apis).
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const { error } = await searchParams;
   return (
     <div className="flex min-h-screen">
       {/* Panel de imagen: solo visible md+, la imagen y el overlay no
@@ -69,7 +72,7 @@ export default function SignInPage({
           </p>
         </div>
 
-        {searchParams?.error && (
+        {error && (
           <p className="rounded-md bg-destructive/10 p-2 text-center text-sm text-destructive">
             Usuario o contraseña incorrectos.
           </p>

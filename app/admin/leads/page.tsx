@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import { getLeads, getLeadStats } from '@/server/queries/leads';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableHeader,
@@ -11,6 +12,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Pagination } from '@/components/pagination';
+import { LeadActions } from '@/components/admin/lead-actions';
 import { formatPrice, formatDateTime } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -18,9 +20,12 @@ export const dynamic = 'force-dynamic';
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  // Next.js 15: searchParams es una Promise, hay que resolverla antes de leer
+  // sus propiedades (ver nextjs.org/docs/messages/sync-dynamic-apis).
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const page = searchParams.page ? Number(searchParams.page) : 1;
+  const { page: pageParam } = await searchParams;
+  const page = pageParam ? Number(pageParam) : 1;
   const [stats, { leads, totalPages }] = await Promise.all([
     getLeadStats(),
     getLeads(page),
@@ -36,7 +41,7 @@ export default async function LeadsPage({
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">Total de leads</p>
@@ -61,6 +66,31 @@ export default async function LeadsPage({
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">Esta semana</p>
             <p className="text-3xl font-bold">{stats.leadsThisWeek}</p>
+          </CardContent>
+        </Card>
+        {/* Alerta visual cuando hay algo esperando: mientras un lead siga
+            pendiente, el stock no refleja con certeza lo que se vendió de
+            verdad (ver app/api/admin/leads/[id]/route.ts). */}
+        <Card
+          className={
+            stats.pendingLeadsCount > 0
+              ? 'border-amber-500/50 bg-amber-500/5'
+              : undefined
+          }
+        >
+          <CardContent className="p-6">
+            <p className="text-sm text-muted-foreground">
+              Esperando confirmación
+            </p>
+            <p
+              className={
+                stats.pendingLeadsCount > 0
+                  ? 'text-3xl font-bold text-amber-600 dark:text-amber-500'
+                  : 'text-3xl font-bold'
+              }
+            >
+              {stats.pendingLeadsCount}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -94,12 +124,14 @@ export default async function LeadsPage({
               <TableHead>Fecha</TableHead>
               <TableHead>Productos cotizados</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {leads.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   Todavía no hay leads registrados.
                 </TableCell>
               </TableRow>
@@ -110,10 +142,36 @@ export default async function LeadsPage({
                   {formatDateTime(lead.createdAt)}
                 </TableCell>
                 <TableCell>
-                  {lead.items.map(item => `${item.name} x${item.quantity}`).join(', ')}
+                  {lead.items
+                    .map(
+                      item =>
+                        `${item.name}${item.colorName ? ` (${item.colorName})` : ''} x${item.quantity}`
+                    )
+                    .join(', ')}
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatPrice(lead.totalAmount)}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      lead.estado === 'confirmado'
+                        ? 'default'
+                        : lead.estado === 'cancelado'
+                          ? 'outline'
+                          : 'secondary'
+                    }
+                    className="font-normal"
+                  >
+                    {lead.estado === 'pendiente'
+                      ? 'Pendiente'
+                      : lead.estado === 'confirmado'
+                        ? 'Confirmado'
+                        : 'Cancelado'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <LeadActions id={lead.id} estado={lead.estado} />
                 </TableCell>
               </TableRow>
             ))}

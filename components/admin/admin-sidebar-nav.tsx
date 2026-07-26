@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Settings,
   Megaphone,
+  Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ const navItems = [
     icon: TrendingUp,
   },
   { href: '/admin/leads', label: 'Leads', icon: MessageSquare },
+  { href: '/admin/inventario', label: 'Inventario', icon: Boxes },
   {
     href: '/admin/settings',
     label: 'Verificar número de WhatsApp',

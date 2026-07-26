@@ -4,6 +4,10 @@ import prisma from '@/lib/prisma';
 
 const withCategory = {
   category: { select: { id: true, name: true, slug: true } },
+  // Stock por color -- solo lo usa la ficha de detalle (para deshabilitar
+  // swatches sin stock), pero se incluye acá en el include compartido para
+  // no duplicar la consulta; es liviano (0 filas para productos sin colores).
+  colorStocks: true,
 } as const;
 
 type ProductWithCategory = Prisma.ProductGetPayload<{
@@ -160,6 +164,23 @@ export async function getRelatedProducts(
     orderBy: { createdAt: 'desc' },
     take: limit,
   });
+}
+
+// Valor total del catálogo activo disponible para vender (precio * stock,
+// sumado en JS -- Prisma no puede multiplicar dos columnas dentro de un
+// aggregate). Alimenta la card "Valor total en venta" del dashboard. Solo
+// tiene sentido con el módulo de stock activo; si está apagado, `stock`
+// queda en 0 por defecto y el total simplemente da 0.
+export async function getActiveCatalogValue() {
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
+    select: { price: true, stock: true },
+  });
+
+  return products.reduce(
+    (sum, product) => sum + Number(product.price) * product.stock,
+    0
+  );
 }
 
 export async function getCategoryBySlug(slug: string) {

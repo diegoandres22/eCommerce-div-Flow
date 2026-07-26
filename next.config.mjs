@@ -8,11 +8,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.supabase.co',
       },
-      // Solo para imágenes de prueba del seed de desarrollo (prisma/seed.ts).
-      // Quitar este bloque antes de pasar a producción con un cliente real.
+      // Solo para imágenes de prueba del seed de desarrollo (prisma/seed.ts):
+      // fotos reales de Flickr (CC) filtradas por keyword, no paisajes
+      // aleatorios como picsum.photos. Quitar este bloque antes de pasar a
+      // producción con un cliente real.
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
+        hostname: 'loremflickr.com',
       },
     ],
   },

@@ -3,6 +3,7 @@ import { formatPrice } from './utils';
 
 interface OrderItem {
   name: string;
+  colorName?: string;
   quantity: number;
   price: number;
 }
@@ -16,7 +17,7 @@ export function buildWhatsAppOrderLink(
 ) {
   const lines = items.map(
     item =>
-      `- ${item.name} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`
+      `- ${item.name}${item.colorName ? ` (${item.colorName})` : ''} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`
   );
 
   const message = [

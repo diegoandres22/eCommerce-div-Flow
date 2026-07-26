@@ -9,10 +9,14 @@ import { ProductGridSkeleton } from '@/components/product-grid-skeleton';
 import { ProductFilters } from '@/components/product-filters';
 import { Pagination } from '@/components/pagination';
 import { searchProducts, type ProductSort } from '@/server/queries/products';
+import { getStockConfig } from '@/server/queries/settings';
+import { withEffectiveStock } from '@/lib/stock';
 import prisma from '@/lib/prisma';
 
+// Next.js 15: searchParams es una Promise, hay que resolverla antes de leer
+// sus propiedades (ver nextjs.org/docs/messages/sync-dynamic-apis).
 interface SearchPageProps {
-  searchParams: {
+  searchParams: Promise<{
     q?: string;
     sort?: string;
     minPrice?: string;
@@ -20,18 +24,20 @@ interface SearchPageProps {
     categoryId?: string;
     subCategoryId?: string;
     page?: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({
   searchParams,
 }: SearchPageProps): Promise<Metadata> {
-  const query = searchParams.q || '';
+  const { q } = await searchParams;
+  const query = q || '';
   return { title: query ? `Buscar: ${query}` : 'Buscar productos' };
 }
 
 async function SearchResults({ searchParams }: SearchPageProps) {
-  const query = searchParams.q || '';
+  const params = await searchParams;
+  const query = params.q || '';
 
   if (!query.trim()) {
     return (
@@ -44,18 +50,20 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     );
   }
 
-  const [{ products, totalCount, totalPages, page }, categories] =
+  const [{ products, totalCount, totalPages, page }, categories, { controlStockActivo }] =
     await Promise.all([
       searchProducts(query, {
-        sort: searchParams.sort as ProductSort | undefined,
-        minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
-        maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined,
-        categoryId: searchParams.categoryId,
-        subCategoryId: searchParams.subCategoryId,
-        page: searchParams.page ? Number(searchParams.page) : 1,
+        sort: params.sort as ProductSort | undefined,
+        minPrice: params.minPrice ? Number(params.minPrice) : undefined,
+        maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
+        categoryId: params.categoryId,
+        subCategoryId: params.subCategoryId,
+        page: params.page ? Number(params.page) : 1,
       }),
       prisma.category.findMany({ orderBy: { name: 'asc' } }),
+      getStockConfig(),
     ]);
+  const effectiveProducts = withEffectiveStock(products, controlStockActivo);
 
   return (
     <>
@@ -63,7 +71,7 @@ async function SearchResults({ searchParams }: SearchPageProps) {
         <ProductFilters totalCount={totalCount} categories={categories} />
       </Suspense>
       <div className="mt-6">
-        <ProductGrid products={products} />
+        <ProductGrid products={effectiveProducts} />
       </div>
       <Suspense fallback={null}>
         <Pagination page={page} totalPages={totalPages} />
@@ -72,8 +80,9 @@ async function SearchResults({ searchParams }: SearchPageProps) {
   );
 }
 
-export default function SearchPage({ searchParams }: SearchPageProps) {
-  const query = searchParams.q || '';
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const { q } = await searchParams;
+  const query = q || '';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

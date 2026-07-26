@@ -22,12 +22,25 @@ import { slugify } from '../lib/utils';
 
 const prisma = new PrismaClient();
 
-// picsum.photos genera una imagen estable y de alta resolución por seed,
-// sin depender de una API key externa (Unsplash Source quedó deprecado).
-function productImages(seed: string): string[] {
+// loremflickr.com sirve fotos reales de Flickr (licencia Creative Commons)
+// filtradas por palabra clave -- a diferencia de picsum.photos, que devuelve
+// fotos aleatorias sin relación con el producto (paisajes, texturas, etc).
+// "lock" fija una foto específica del pool de esa keyword para que la
+// imagen no cambie en cada visita; se deriva con un hash simple del id
+// único del producto, así que no hace falta llevar un contador global.
+function hashToLock(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return hash % 100000;
+}
+
+function productImages(tag: string, uniqueSeed: string): string[] {
+  const lock = hashToLock(uniqueSeed);
   return [
-    `https://picsum.photos/seed/${seed}-1/1000/1000`,
-    `https://picsum.photos/seed/${seed}-2/1000/1000`,
+    `https://loremflickr.com/1000/1000/${tag}?lock=${lock}`,
+    `https://loremflickr.com/1000/1000/${tag}?lock=${lock + 1}`,
   ];
 }
 
@@ -41,6 +54,9 @@ interface ProductSeed {
 
 interface SubCategorySeed {
   name: string;
+  // Keyword de loremflickr.com para que las imágenes generadas correspondan
+  // de verdad al tipo de producto de esta subcategoría.
+  tag: string;
   products: ProductSeed[];
 }
 
@@ -55,6 +71,7 @@ const CATALOG: CategorySeed[] = [
     subcategories: [
       {
         name: 'Smartphones',
+        tag: 'smartphone',
         products: [
           { name: 'Samsung Galaxy S23', marca: 'Samsung', modelo: 'Galaxy S23', price: 799 },
           { name: 'Samsung Galaxy S23 Ultra', marca: 'Samsung', modelo: 'Galaxy S23 Ultra', price: 1199 },
@@ -70,6 +87,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Laptops',
+        tag: 'laptop',
         products: [
           { name: 'Apple MacBook Air M2', marca: 'Apple', modelo: 'MacBook Air M2', price: 1199 },
           { name: 'Apple MacBook Pro 14"', marca: 'Apple', modelo: 'MacBook Pro 14" M2 Pro', price: 2199 },
@@ -84,6 +102,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Audio',
+        tag: 'headphones',
         products: [
           { name: 'Sony WH-1000XM5', marca: 'Sony', modelo: 'WH-1000XM5', price: 349 },
           { name: 'JBL Tune 510BT', marca: 'JBL', modelo: 'Tune 510BT', price: 39 },
@@ -100,6 +119,7 @@ const CATALOG: CategorySeed[] = [
     subcategories: [
       {
         name: 'Calzado',
+        tag: 'sneakers',
         products: [
           { name: 'Nike Air Max 90', marca: 'Nike', modelo: 'Air Max 90', price: 129, colors: 'Blanco:#ffffff,Negro:#111111,Rojo:#dc2626' },
           { name: "Nike Air Force 1 '07", marca: 'Nike', modelo: "Air Force 1 '07", price: 109, colors: 'Blanco:#ffffff,Negro:#111111' },
@@ -112,6 +132,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Ropa',
+        tag: 'clothing',
         products: [
           { name: "Levi's 501 Jean Clásico", marca: "Levi's", modelo: '501 Original', price: 79, colors: 'Azul:#2563eb,Negro:#111111' },
           { name: 'Nike Dri-FIT Camiseta', marca: 'Nike', modelo: 'Dri-FIT Basic', price: 29, colors: 'Negro:#111111,Blanco:#ffffff,Gris:#9ca3af' },
@@ -130,6 +151,7 @@ const CATALOG: CategorySeed[] = [
     subcategories: [
       {
         name: 'Electrodomésticos',
+        tag: 'kitchen,appliance',
         products: [
           { name: 'Samsung Refrigerador RT38 No Frost', marca: 'Samsung', modelo: 'RT38 No Frost', price: 899 },
           { name: 'LG Lavadora Carga Frontal 18kg', marca: 'LG', modelo: 'Lavadora 18kg', price: 649 },
@@ -142,6 +164,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Decoración',
+        tag: 'homedecor',
         products: [
           { name: 'Set de Cojines Decorativos x4', marca: 'Home Deco', modelo: 'Set Cojines x4', price: 39 },
           { name: 'Espejo Redondo Nórdico 60cm', marca: 'Home Deco', modelo: 'Espejo Nórdico 60cm', price: 79 },
@@ -158,6 +181,7 @@ const CATALOG: CategorySeed[] = [
     subcategories: [
       {
         name: 'Fitness',
+        tag: 'fitness',
         products: [
           { name: 'Set Mancuernas Ajustables 2-24kg', marca: 'PowerFit', modelo: 'Set Mancuernas 2-24kg', price: 189 },
           { name: 'Bicicleta Estática BH Sonic', marca: 'BH', modelo: 'Sonic', price: 449 },
@@ -170,6 +194,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Ciclismo',
+        tag: 'bicycle',
         products: [
           { name: 'Bicicleta MTB Trek Marlin 7', marca: 'Trek', modelo: 'Marlin 7', price: 999 },
           { name: 'Bicicleta Ruta Specialized Allez', marca: 'Specialized', modelo: 'Allez', price: 1199 },
@@ -186,6 +211,7 @@ const CATALOG: CategorySeed[] = [
     subcategories: [
       {
         name: 'Cuidado facial',
+        tag: 'skincare',
         products: [
           { name: 'Serum Vitamina C 10', marca: 'La Roche-Posay', modelo: 'Serum Vit C 10', price: 39 },
           { name: 'Crema Hidratante 24h', marca: 'Nivea', modelo: 'Crema Hidratante 24h', price: 12 },
@@ -197,6 +223,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Maquillaje',
+        tag: 'makeup',
         products: [
           { name: 'Base Líquida Fit Me Matte', marca: 'Maybelline', modelo: 'Fit Me Matte', price: 15 },
           { name: 'Paleta de Sombras Naked3', marca: 'Urban Decay', modelo: 'Naked3', price: 45 },
@@ -213,6 +240,7 @@ const CATALOG: CategorySeed[] = [
     subcategories: [
       {
         name: 'Consolas',
+        tag: 'videogames',
         products: [
           { name: 'PlayStation 5', marca: 'Sony', modelo: 'PlayStation 5', price: 549 },
           { name: 'Xbox Series X', marca: 'Microsoft', modelo: 'Xbox Series X', price: 549 },
@@ -224,6 +252,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Accesorios Gaming',
+        tag: 'gaming',
         products: [
           { name: 'Control DualSense PS5', marca: 'Sony', modelo: 'DualSense', price: 69 },
           { name: 'Auriculares Gamer Cloud II', marca: 'HyperX', modelo: 'Cloud II', price: 89 },
@@ -240,6 +269,7 @@ const CATALOG: CategorySeed[] = [
     subcategories: [
       {
         name: 'Perros',
+        tag: 'dog',
         products: [
           { name: 'Alimento Premium Perro Adulto 15kg', marca: 'Pro Plan', modelo: 'Adulto 15kg', price: 69 },
           { name: 'Cama Ortopédica para Perro L', marca: 'PetComfort', modelo: 'Cama Ortopédica L', price: 45 },
@@ -250,6 +280,7 @@ const CATALOG: CategorySeed[] = [
       },
       {
         name: 'Gatos',
+        tag: 'cat',
         products: [
           { name: 'Alimento Gato Esterilizado 7kg', marca: 'Pro Plan', modelo: 'Esterilizado 7kg', price: 39 },
           { name: 'Arenero Autolimpiante', marca: 'PetComfort', modelo: 'Arenero Auto', price: 59 },
@@ -266,21 +297,21 @@ const BANNERS = [
   {
     title: 'Oferta de Temporada',
     subtitle: 'Hasta 30% OFF en electrónica seleccionada',
-    imageUrl: 'https://picsum.photos/seed/banner-oferta-temporada/1600/600',
+    imageUrl: 'https://loremflickr.com/1600/600/sale?lock=90001',
     linkUrl: '/category/electronica',
     order: 0,
   },
   {
     title: 'Lanzamiento Exclusivo',
     subtitle: 'Descubre los nuevos smartphones 2026',
-    imageUrl: 'https://picsum.photos/seed/banner-lanzamiento-exclusivo/1600/600',
+    imageUrl: 'https://loremflickr.com/1600/600/smartphone?lock=90002',
     linkUrl: '/category/smartphones',
     order: 1,
   },
   {
     title: 'Compra Fácil por WhatsApp',
     subtitle: 'Arma tu pedido y confírmalo en un solo mensaje',
-    imageUrl: 'https://picsum.photos/seed/banner-whatsapp/1600/600',
+    imageUrl: 'https://loremflickr.com/1600/600/delivery?lock=90003',
     linkUrl: '/products',
     order: 2,
   },
@@ -308,14 +339,14 @@ async function seedCatalog() {
       });
 
       for (const [index, product] of sub.products.entries()) {
-        const seedKey = `${slugify(category.name)}-${slugify(sub.name)}-${index}`;
+        const uniqueSeed = `${slugify(category.name)}-${slugify(sub.name)}-${index}`;
 
         await prisma.product.create({
           data: {
             name: product.name,
             description: `${product.name} de ${product.marca}. Buena relación calidad-precio, ideal para uso diario. Coordina tu compra directo por WhatsApp.`,
             price: product.price,
-            images: productImages(seedKey),
+            images: productImages(sub.tag, uniqueSeed),
             marca: product.marca,
             modelo: product.modelo,
             colores: product.colors ?? '',

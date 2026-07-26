@@ -31,8 +31,29 @@ export const productSchema = z.object({
   // variantes de color.
   colores: z.string().default(''),
   isActive: z.boolean().default(true),
-  // Independiente de isActive: producto visible pero no comprable.
+  // Independiente de isActive: producto visible pero no comprable. Solo se
+  // edita a mano cuando controlStockActivo está apagado -- con el módulo de
+  // stock activo, este valor se ignora y se deriva de `stock` (ver
+  // app/api/admin/products/route.ts y [id]/route.ts).
   isOutOfStock: z.boolean().default(false),
+  // --- Módulo de stock (opcional) ---
+  stock: z.number().int().min(0, 'El stock no puede ser negativo').default(0),
+  stockMinimo: z
+    .number()
+    .int()
+    .min(0, 'El umbral no puede ser negativo')
+    .default(3),
+  // Solo relevante si el producto tiene `colores`: una fila por color con su
+  // cantidad. Cuando viene no vacío, `stock` se recalcula server-side como
+  // la suma de estas filas (ver API) -- el admin no lo edita a mano en ese caso.
+  colorStocks: z
+    .array(
+      z.object({
+        colorName: z.string().min(1),
+        stock: z.number().int().min(0),
+      })
+    )
+    .default([]),
 });
 
 // Banner del carrusel principal (home). imageUrl es una URL de Supabase Storage,
@@ -67,6 +88,11 @@ export const leadSchema = z.object({
       z.object({
         productId: z.string().min(1),
         name: z.string().min(1),
+        // Color elegido en el carrito, si el producto tiene colores. Le
+        // permite a la confirmación de venta (app/api/admin/leads/[id]/route.ts)
+        // descontar la fila específica de ProductColorStock en vez de
+        // siempre el agregado del producto.
+        colorName: z.string().optional(),
         price: z.number().nonnegative(),
         quantity: z.number().int().positive(),
       })
@@ -109,4 +135,13 @@ export const configuracionTiendaSchema = z.object({
   // Barra de anuncio superior: texto libre, visible solo si showBanner es true.
   bannerText: z.string().max(200).optional().or(z.literal('')),
   showBanner: z.boolean().default(false),
+  // Interruptor global del módulo de stock (ver Product.stock/Lead.estado).
+  controlStockActivo: z.boolean().default(false),
+});
+
+// Acción sobre un Lead desde /admin/leads: confirmar la venta (descuenta
+// stock) o rechazarla/revertirla (sin efecto, o repone stock si ya estaba
+// confirmada). Ver app/api/admin/leads/[id]/route.ts.
+export const leadActionSchema = z.object({
+  action: z.enum(['confirm', 'cancel']),
 });

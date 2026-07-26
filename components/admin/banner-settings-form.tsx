@@ -45,8 +45,10 @@ export function BannerSettingsForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           // Se reenvía tal cual estaba: esta página no debe pisar el
-          // número de WhatsApp, que se guarda desde /admin/settings.
+          // número de WhatsApp ni el switch de stock, que se guardan desde
+          // otras pantallas.
           whatsappNumber: initialConfig?.whatsappNumber || '',
+          controlStockActivo: initialConfig?.controlStockActivo || false,
           bannerText,
           showBanner,
         }),

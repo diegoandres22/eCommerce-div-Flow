@@ -8,6 +8,8 @@ import {
   getTopViewedProducts,
   getCategoriesWithActiveProducts,
 } from '@/server/queries/products';
+import { getStockConfig } from '@/server/queries/settings';
+import { withEffectiveStock } from '@/lib/stock';
 import { STORE_CONFIG } from '@/lib/store-config';
 
 export const dynamic = 'force-dynamic';
@@ -18,21 +20,24 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [banners, topViewed, categories] = await Promise.all([
-    getActiveBanners(),
-    getTopViewedProducts(10),
-    getCategoriesWithActiveProducts(10),
-  ]);
+  const [banners, topViewed, categories, { controlStockActivo }] =
+    await Promise.all([
+      getActiveBanners(),
+      getTopViewedProducts(10),
+      getCategoriesWithActiveProducts(10),
+      getStockConfig(),
+    ]);
+  const effectiveTopViewed = withEffectiveStock(topViewed, controlStockActivo);
 
   return (
     <>
       <BannerCarousel banners={banners} />
 
       <div className="space-y-14 py-14">
-        {topViewed.length > 0 && (
+        {effectiveTopViewed.length > 0 && (
           <ProductCarousel
             title="Los más vistos"
-            products={topViewed}
+            products={effectiveTopViewed}
             viewAllHref="/products"
           />
         )}
@@ -41,7 +46,7 @@ export default async function HomePage() {
           <ProductCarousel
             key={category.id}
             title={category.name}
-            products={category.products}
+            products={withEffectiveStock(category.products, controlStockActivo)}
             viewAllHref={`/category/${category.slug}`}
           />
         ))}

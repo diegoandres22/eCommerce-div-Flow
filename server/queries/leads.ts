@@ -4,6 +4,9 @@ import prisma from '@/lib/prisma';
 export interface LeadItem {
   productId: string;
   name: string;
+  // Color elegido en el carrito (si el producto tiene colores) -- ver
+  // app/api/admin/leads/[id]/route.ts para el descuento por color.
+  colorName?: string;
   price: number;
   quantity: number;
 }
@@ -37,18 +40,29 @@ export async function getLeadStats() {
   const startOfWeek = new Date(startOfToday);
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
 
-  const [totalLeads, revenueAgg, leadsToday, leadsThisWeek, recentLeads] =
-    await Promise.all([
-      prisma.lead.count(),
-      prisma.lead.aggregate({ _sum: { totalAmount: true } }),
-      prisma.lead.count({ where: { createdAt: { gte: startOfToday } } }),
-      prisma.lead.count({ where: { createdAt: { gte: startOfWeek } } }),
-      prisma.lead.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 200,
-        select: { items: true },
-      }),
-    ]);
+  const [
+    totalLeads,
+    revenueAgg,
+    leadsToday,
+    leadsThisWeek,
+    pendingLeadsCount,
+    recentLeads,
+  ] = await Promise.all([
+    prisma.lead.count(),
+    prisma.lead.aggregate({ _sum: { totalAmount: true } }),
+    prisma.lead.count({ where: { createdAt: { gte: startOfToday } } }),
+    prisma.lead.count({ where: { createdAt: { gte: startOfWeek } } }),
+    // Leads sin confirmar ni rechazar todavía: mientras haya alguno, el stock
+    // no refleja con certeza lo que realmente se vendió (ver
+    // app/api/admin/leads/[id]/route.ts). Alimenta la card de alerta del
+    // dashboard.
+    prisma.lead.count({ where: { estado: 'pendiente' } }),
+    prisma.lead.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: { items: true },
+    }),
+  ]);
 
   // Productos más cotizados: se agrega en JS sobre los últimos 200 leads.
   // Suficiente para el tamaño de un MVP -- evita una consulta JSON compleja
@@ -77,6 +91,7 @@ export async function getLeadStats() {
     totalRevenuePotential: revenueAgg._sum.totalAmount ?? 0,
     leadsToday,
     leadsThisWeek,
+    pendingLeadsCount,
     topProducts,
   };
 }

@@ -5,8 +5,9 @@ import { bannerSchema } from '@/lib/validators';
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const body = await req.json();
   const parsed = bannerSchema.partial().safeParse(body);
 
@@ -18,7 +19,7 @@ export async function PATCH(
   }
 
   const banner = await prisma.banner.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
   return NextResponse.json(banner);
@@ -26,8 +27,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await prisma.banner.delete({ where: { id: params.id } });
+  const { id } = await params;
+  await prisma.banner.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

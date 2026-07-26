@@ -275,6 +275,7 @@ export function BannerManager({
                 alt={banner.title || 'Banner'}
                 fill
                 className="object-cover"
+                sizes="96px"
               />
             </div>
             <div className="min-w-0 flex-1">

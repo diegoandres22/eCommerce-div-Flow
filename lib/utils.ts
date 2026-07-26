@@ -67,9 +67,19 @@ export function formatDateTime(date: Date | string): string {
   }).format(dateObj);
 }
 
+// Mapa explícito de acentos/eñes en vez de un regex por rango Unicode: evita
+// cualquier ambigüedad de codificación en el fuente y es fácil de auditar a
+// simple vista. Sin esto, "Electrónica"/"Decoración" generaban slugs rotos
+// ("electrnica"/"decoracin") porque el regex anterior sencillamente borraba
+// la vocal acentuada entera en vez de reemplazarla por su versión sin tilde.
+const ACCENT_MAP: Record<string, string> = {
+  á: 'a', é: 'e', í: 'i', ó: 'o', ú: 'u', ü: 'u', ñ: 'n',
+};
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()
+    .replace(/[áéíóúüñ]/g, char => ACCENT_MAP[char] ?? char)
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');

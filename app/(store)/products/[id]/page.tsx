@@ -10,26 +10,30 @@ import {
   getRelatedProducts,
   incrementProductViews,
 } from '@/server/queries/products';
-import { AddToCart } from '@/components/add-to-cart';
 import { WishlistButton } from '@/components/wishlist-button';
 import { ShareButtons } from '@/components/share-buttons';
 import { ProductCarousel } from '@/components/product-carousel';
 import { RecentlyViewedCarousel } from '@/components/recently-viewed-carousel';
 import { TrackRecentlyViewed } from '@/components/track-recently-viewed';
-import { ProductColorSwatches } from '@/components/product-color-swatches';
+import { ProductPurchasePanel } from '@/components/product-purchase-panel';
 import { TrustBadges } from '@/components/trust-badges';
 import { parseProductColors } from '@/lib/product-colors';
 import { formatPrice } from '@/lib/utils';
 import { isPrefetchRequest } from '@/lib/route-tracking';
+import { isEffectivelyOutOfStock, withEffectiveStock } from '@/lib/stock';
+import { getStockConfig } from '@/server/queries/settings';
 
+// Next.js 15: params es una Promise, hay que resolverla antes de leer sus
+// propiedades (ver nextjs.org/docs/messages/sync-dynamic-apis).
 interface ProductPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
-  const product = await getProductById(params.id);
+  const { id } = await params;
+  const product = await getProductById(id);
 
   if (!product) {
     return { title: 'Producto no encontrado' };
@@ -47,7 +51,8 @@ export async function generateMetadata({
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  const product = await getProductById(params.id);
+  const { id } = await params;
+  const product = await getProductById(id);
 
   if (!product || !product.isActive) {
     notFound();
@@ -61,14 +66,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
     incrementProductViews(product.id);
   }
 
-  const relatedProducts = await getRelatedProducts(
-    product.id,
-    product.categoryId,
-    product.subCategoryId
-  );
+  const [relatedProductsRaw, { controlStockActivo }] = await Promise.all([
+    getRelatedProducts(product.id, product.categoryId, product.subCategoryId),
+    getStockConfig(),
+  ]);
+  const relatedProducts = withEffectiveStock(relatedProductsRaw, controlStockActivo);
 
   const productUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/products/${product.id}`;
   const colors = parseProductColors(product.colores);
+  const outOfStock = isEffectivelyOutOfStock(product, controlStockActivo);
 
   // Datos estructurados para resultados enriquecidos de Google (precio,
   // disponibilidad, imagen) en la ficha de producto.
@@ -84,7 +90,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       url: productUrl,
       priceCurrency: 'USD',
       price: Number(product.price).toFixed(2),
-      availability: product.isOutOfStock
+      availability: outOfStock
         ? 'https://schema.org/OutOfStock'
         : 'https://schema.org/InStock',
     },
@@ -133,6 +139,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               fill
               className="object-cover"
               priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
           {product.images.length > 1 && (
@@ -147,6 +154,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     alt={`${product.name} ${index + 2}`}
                     fill
                     className="object-cover"
+                    sizes="(max-width: 1024px) 25vw, 12vw"
                   />
                 </div>
               ))}
@@ -177,26 +185,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <p className="text-muted-foreground">{product.description}</p>
           )}
 
-          <ProductColorSwatches colors={colors} />
-
-          {product.isOutOfStock && (
-            <p className="text-sm font-medium text-destructive">
-              Este producto está agotado por el momento.
-            </p>
-          )}
-
-          <div className="flex items-center gap-2">
-            <AddToCart
-              product={{
-                id: product.id,
-                name: product.name,
-                price: Number(product.price),
-                images: product.images,
-              }}
-              showQuantitySelector
-              disabled={product.isOutOfStock}
-            />
-          </div>
+          <ProductPurchasePanel
+            product={{
+              id: product.id,
+              name: product.name,
+              price: Number(product.price),
+              images: product.images,
+            }}
+            colors={colors}
+            controlStockActivo={controlStockActivo}
+            stock={product.stock}
+            colorStocks={product.colorStocks}
+            isOutOfStock={outOfStock}
+          />
 
           <ShareButtons productName={product.name} url={productUrl} />
 

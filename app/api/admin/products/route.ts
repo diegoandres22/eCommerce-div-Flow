@@ -2,12 +2,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { productSchema } from '@/lib/validators';
+import { resolveProductStock } from '@/lib/stock';
 
 export async function GET() {
   const products = await prisma.product.findMany({
     include: {
       category: { select: { id: true, name: true } },
       subCategory: { select: { id: true, name: true } },
+      colorStocks: true,
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -37,11 +39,22 @@ export async function POST(req: Request) {
     }
   }
 
+  // colorStocks es una relación (ProductColorStock), no un campo escalar de
+  // Product -- se separa del resto y se crea anidada. `stock` se recalcula
+  // como la suma cuando hay colores (ver lib/stock.ts).
+  const { colorStocks, stock, ...productData } = parsed.data;
+
   const product = await prisma.product.create({
-    data: parsed.data,
+    data: {
+      ...productData,
+      stock: resolveProductStock(stock, colorStocks),
+      colorStocks:
+        colorStocks.length > 0 ? { create: colorStocks } : undefined,
+    },
     include: {
       category: { select: { id: true, name: true } },
       subCategory: { select: { id: true, name: true } },
+      colorStocks: true,
     },
   });
   return NextResponse.json(product, { status: 201 });

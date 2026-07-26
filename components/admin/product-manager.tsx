@@ -1,13 +1,15 @@
 // File: components/admin/product-manager.tsx
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Category, Product } from '@prisma/client';
-import { Pencil, Trash2, Plus, Search } from 'lucide-react';
+import type { ColumnDef, Table as TanstackTable } from '@tanstack/react-table';
+import { Pencil, Trash2, Plus, ImageOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -15,19 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter';
+import { SmartImage } from '@/components/ui/smart-image';
 import { useToast } from '@/components/ui/use-toast';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { ImageDropzone } from '@/components/admin/image-dropzone';
 import { ProductColorEditor } from '@/components/admin/product-color-editor';
+import { ProductColorStockEditor } from '@/components/admin/product-color-stock-editor';
 import { STORE_CONFIG } from '@/lib/store-config';
+import { formatPrice } from '@/lib/utils';
+import { parseProductColors } from '@/lib/product-colors';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +43,7 @@ import {
 type ProductWithCategory = Product & {
   category: { id: string; name: string };
   subCategory: { id: string; name: string } | null;
+  colorStocks: { colorName: string; stock: number }[];
 };
 
 const emptyForm = {
@@ -56,17 +58,21 @@ const emptyForm = {
   colores: '',
   isActive: true,
   isOutOfStock: false,
+  stock: '0',
+  stockMinimo: '3',
+  colorStocks: {} as Record<string, number>,
 };
 
 export function ProductManager({
   initialProducts,
   categories,
+  controlStockActivo,
 }: {
   initialProducts: ProductWithCategory[];
   categories: Category[];
+  controlStockActivo: boolean;
 }) {
   const [products, setProducts] = useState(initialProducts);
-  const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<ProductWithCategory | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,16 +88,32 @@ export function ProductManager({
     c => c.parentId === form.categoryId
   );
 
-  // Filtro en vivo de la tabla por nombre o categoría/subcategoría.
-  const query = search.trim().toLowerCase();
-  const filteredProducts = query
-    ? products.filter(
-        p =>
-          p.name.toLowerCase().includes(query) ||
-          p.category.name.toLowerCase().includes(query) ||
-          p.subCategory?.name.toLowerCase().includes(query)
-      )
-    : products;
+  const mainCategories = useMemo(
+    () => categories.filter(c => !c.parentId),
+    [categories]
+  );
+
+  // Con el módulo de stock activo, "agotado" se deriva de `stock <= 0` en vez
+  // del checkbox manual `isOutOfStock` (que solo se usa cuando el switch
+  // global está apagado -- ver ConfiguracionTienda.controlStockActivo).
+  const isOutOfStock = (product: ProductWithCategory) =>
+    controlStockActivo ? product.stock <= 0 : product.isOutOfStock;
+
+  // Conteo real para el filtro "Estado" -- ver la nota en
+  // DataTableFacetedFilter sobre por qué no se puede confiar en
+  // column.getFacetedUniqueValues() para una columna de valor-array.
+  const estadoCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const product of products) {
+      const activeKey = product.isActive ? 'activo' : 'inactivo';
+      map.set(activeKey, (map.get(activeKey) ?? 0) + 1);
+      if (isOutOfStock(product)) {
+        map.set('agotado', (map.get('agotado') ?? 0) + 1);
+      }
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, controlStockActivo]);
 
   const resetForm = () => {
     setEditing(null);
@@ -113,6 +135,11 @@ export function ProductManager({
       colores: product.colores,
       isActive: product.isActive,
       isOutOfStock: product.isOutOfStock,
+      stock: String(product.stock),
+      stockMinimo: String(product.stockMinimo),
+      colorStocks: Object.fromEntries(
+        product.colorStocks.map(c => [c.colorName, c.stock])
+      ),
     });
     setShowForm(true);
   };
@@ -121,6 +148,16 @@ export function ProductManager({
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Solo las filas de color que siguen existiendo en `form.colores` en
+      // este momento (si se borró un color en ProductColorEditor, su fila de
+      // stock no se reenvía). El total (`stock`) se recalcula server-side
+      // como la suma de estas filas cuando hay al menos una.
+      const currentColors = parseProductColors(form.colores);
+      const colorStocksPayload = currentColors.map(color => ({
+        colorName: color.name,
+        stock: form.colorStocks[color.name] ?? 0,
+      }));
+
       const payload = {
         name: form.name,
         description: form.description || undefined,
@@ -133,6 +170,9 @@ export function ProductManager({
         colores: form.colores,
         isActive: form.isActive,
         isOutOfStock: form.isOutOfStock,
+        stock: parseInt(form.stock) || 0,
+        stockMinimo: parseInt(form.stockMinimo) || 0,
+        colorStocks: colorStocksPayload,
       };
 
       const url = editing
@@ -195,25 +235,217 @@ export function ProductManager({
     router.refresh();
   };
 
+  const stockColumn: ColumnDef<ProductWithCategory> = {
+    id: 'stock',
+    accessorFn: product => product.stock,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Stock" />
+    ),
+    cell: ({ row }) => {
+      const product = row.original;
+      const low = product.stock > 0 && product.stock <= product.stockMinimo;
+      return (
+        <span
+          className={
+            low ? 'font-semibold text-amber-600 dark:text-amber-500' : 'font-medium'
+          }
+        >
+          {product.stock}
+        </span>
+      );
+    },
+  };
+
+  const columns = useMemo<ColumnDef<ProductWithCategory>[]>(
+    () => [
+      {
+        id: 'imagen',
+        header: () => <span className="sr-only">Imagen</span>,
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => {
+          const product = row.original;
+          return (
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+              {product.images[0] ? (
+                <SmartImage
+                  src={product.images[0]}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  sizes="40px"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                  <ImageOff className="h-4 w-4" />
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'name',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Nombre" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="font-medium">{getValue<string>()}</span>
+        ),
+      },
+      {
+        id: 'categoria',
+        accessorFn: product => product.categoryId,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Categoría" />
+        ),
+        filterFn: (row, id, value: string[]) =>
+          value.includes(row.getValue<string>(id)),
+        sortingFn: (rowA, rowB) =>
+          rowA.original.category.name.localeCompare(rowB.original.category.name),
+        cell: ({ row }) => {
+          const product = row.original;
+          return (
+            <div className="flex flex-col">
+              <span>{product.category.name}</span>
+              {product.subCategory && (
+                <span className="text-xs text-muted-foreground">
+                  {product.subCategory.name}
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'precio',
+        accessorFn: product => Number(product.price),
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Precio" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="font-medium">{formatPrice(getValue<number>())}</span>
+        ),
+      },
+      {
+        id: 'estado',
+        // Valor múltiple para que un mismo producto pueda coincidir con más
+        // de una opción del filtro (ej. "Activo" + "Agotado" a la vez).
+        accessorFn: product => {
+          const tags: string[] = [product.isActive ? 'activo' : 'inactivo'];
+          if (isOutOfStock(product)) tags.push('agotado');
+          return tags;
+        },
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Estado" />
+        ),
+        filterFn: 'arrIncludesSome',
+        cell: ({ row }) => {
+          const product = row.original;
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge
+                variant={product.isActive ? 'default' : 'outline'}
+                className="font-normal"
+              >
+                {product.isActive ? 'Activo' : 'Inactivo'}
+              </Badge>
+              {isOutOfStock(product) && (
+                <Badge variant="destructive" className="font-normal">
+                  Agotado
+                </Badge>
+              )}
+            </div>
+          );
+        },
+      },
+      ...(controlStockActivo ? [stockColumn] : []),
+      {
+        id: 'acciones',
+        header: () => <div className="text-right">Acciones</div>,
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => startEdit(row.original)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setDeleteTarget(row.original)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [controlStockActivo]
+  );
+
+  const renderToolbar = (table: TanstackTable<ProductWithCategory>) => {
+    const hasFilters =
+      table.getState().columnFilters.length > 0 ||
+      !!table.getState().globalFilter;
+
+    return (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <Input
+            placeholder="Buscar por nombre..."
+            value={(table.getState().globalFilter as string) ?? ''}
+            onChange={e => table.setGlobalFilter(e.target.value)}
+            className="h-9 max-w-xs"
+          />
+          <DataTableFacetedFilter
+            column={table.getColumn('categoria')}
+            title="Categoría"
+            options={mainCategories.map(c => ({ label: c.name, value: c.id }))}
+          />
+          <DataTableFacetedFilter
+            column={table.getColumn('estado')}
+            title="Estado"
+            options={[
+              { label: 'Activo', value: 'activo' },
+              { label: 'Inactivo', value: 'inactivo' },
+              { label: 'Agotado', value: 'agotado' },
+            ]}
+            counts={estadoCounts}
+          />
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9"
+              onClick={() => {
+                table.resetColumnFilters();
+                table.setGlobalFilter('');
+              }}
+            >
+              Limpiar
+              <X className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+        <Button
+          onClick={() => setShowForm(true)}
+          disabled={categories.length === 0}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo producto
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      {!showForm && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button onClick={() => setShowForm(true)} disabled={categories.length === 0}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo producto
-          </Button>
-          <div className="relative sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por nombre o categoría..."
-              className="pl-9"
-            />
-          </div>
-        </div>
-      )}
       {categories.length === 0 && (
         <p className="text-sm text-muted-foreground">
           Crea al menos una categoría antes de agregar productos.
@@ -370,6 +602,51 @@ export function ProductManager({
             </div>
           )}
 
+          {controlStockActivo && (() => {
+            const parsedColors = parseProductColors(form.colores);
+            return (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {parsedColors.length > 0 ? (
+                  <div className="sm:col-span-2">
+                    <ProductColorStockEditor
+                      colors={parsedColors}
+                      stocks={form.colorStocks}
+                      onChange={(colorName, stock) =>
+                        setForm(prev => ({
+                          ...prev,
+                          colorStocks: { ...prev.colorStocks, [colorName]: stock },
+                        }))
+                      }
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label htmlFor="stock">Stock</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      min="0"
+                      value={form.stock}
+                      onChange={e => setForm({ ...form, stock: e.target.value })}
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="stockMinimo">Alertar cuando baje de</Label>
+                  <Input
+                    id="stockMinimo"
+                    type="number"
+                    min="0"
+                    value={form.stockMinimo}
+                    onChange={e =>
+                      setForm({ ...form, stockMinimo: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -379,16 +656,23 @@ export function ProductManager({
               />
               Activo (visible en la tienda)
             </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.isOutOfStock}
-                onChange={e =>
-                  setForm({ ...form, isOutOfStock: e.target.checked })
-                }
-              />
-              Agotado (visible, pero no se puede comprar)
-            </label>
+            {controlStockActivo ? (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                &quot;Agotado&quot; se calcula solo según el stock cargado
+                arriba -- no hace falta tildarlo a mano.
+              </p>
+            ) : (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.isOutOfStock}
+                  onChange={e =>
+                    setForm({ ...form, isOutOfStock: e.target.checked })
+                  }
+                />
+                Agotado (visible, pero no se puede comprar)
+              </label>
+            )}
           </div>
 
           <div className="flex gap-2">
@@ -403,61 +687,13 @@ export function ProductManager({
       )}
 
       {!showForm && (
-      <div className="overflow-hidden rounded-lg border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/80 dark:bg-muted/40 hover:bg-muted/80 [&_th]:font-semibold [&_th]:text-foreground">
-            <TableHead>Nombre</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead>Subcategoría</TableHead>
-            <TableHead>Precio</TableHead>
-            <TableHead>Activo</TableHead>
-            <TableHead className="text-right">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredProducts.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
-                {products.length === 0
-                  ? 'Sin productos todavía.'
-                  : 'Ningún producto coincide con tu búsqueda.'}
-              </TableCell>
-            </TableRow>
-          )}
-          {filteredProducts.map(product => (
-            <TableRow key={product.id}>
-              <TableCell>{product.name}</TableCell>
-              <TableCell>{product.category.name}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {product.subCategory?.name || '—'}
-              </TableCell>
-              <TableCell>${Number(product.price).toFixed(2)}</TableCell>
-              <TableCell>
-                {product.isActive ? 'Sí' : 'No'}
-                {product.isOutOfStock && (
-                  <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                    Agotado
-                  </span>
-                )}
-              </TableCell>
-              <TableCell className="flex justify-end gap-2">
-                <Button size="icon" variant="ghost" onClick={() => startEdit(product)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setDeleteTarget(product)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      </div>
+        <DataTable
+          columns={columns}
+          data={products}
+          toolbar={renderToolbar}
+          emptyMessage="Sin productos todavía."
+          getRowId={product => product.id}
+        />
       )}
 
       <AlertDialog
