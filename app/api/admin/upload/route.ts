@@ -1,7 +1,7 @@
 // File: app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { supabaseAdmin, PRODUCT_IMAGES_BUCKET } from '@/lib/supabase-admin';
+import { getSupabaseAdmin, PRODUCT_IMAGES_BUCKET } from '@/lib/supabase-admin';
 
 // Protegido por middleware.ts (app/api/admin/*). Recibe uno o más archivos
 // (FormData, campo "files"), los sube a Supabase Storage y devuelve las
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
   }
 
   const urls: string[] = [];
+  const supabaseAdmin = getSupabaseAdmin();
 
   for (const file of files) {
     const ext = file.name.split('.').pop() || 'jpg';
