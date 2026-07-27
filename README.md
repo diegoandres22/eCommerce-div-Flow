@@ -69,7 +69,8 @@ Ver [`.env.example`](.env.example) para el listado completo con explicación de 
 
 | Variable | Para qué |
 |---|---|
-| `DATABASE_URL` | Conexión a PostgreSQL |
+| `DATABASE_URL` | Conexión a PostgreSQL (pooled) |
+| `DIRECT_URL` | Conexión directa a PostgreSQL (sin pooler), solo para migraciones |
 | `NEXTAUTH_SECRET` / `NEXTAUTH_URL` | Sesión del panel admin |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login del admin vía Google |
 | `ALLOWED_ADMIN_EMAIL` | Único email autorizado a entrar por Google |
@@ -77,7 +78,7 @@ Ver [`.env.example`](.env.example) para el listado completo con explicación de 
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `CONTACT_EMAIL_TO` | Correo de contacto y notificación de leads |
 | `NEXT_PUBLIC_APP_URL` | URL pública del sitio |
 
-`ALLOW_TEST_ADMIN` + `TEST_ADMIN_USER` + `TEST_ADMIN_PASS` habilitan una cuenta de prueba sin Google, **solo para desarrollo/demo — nunca en producción**.
+`ADMIN_LOGIN_EMAIL` + `ADMIN_PASSWORD_HASH` habilitan el login con correo y contraseña (además de Google) -- requiere también `permitirLoginConCredenciales: true` en `lib/store-config.ts` para ese cliente.
 
 ## 📁 Estructura del proyecto
 
@@ -125,7 +126,7 @@ También existe un `Makefile` con atajos equivalentes (`make dev`, `make db-setu
 
 ## 🔐 Seguridad
 
-- Login del admin restringido a un único email (`ALLOWED_ADMIN_EMAIL`) vía Google OAuth; la cuenta de prueba requiere opt-in explícito y nunca debe habilitarse en producción.
+- Login del admin restringido a un único email (`ALLOWED_ADMIN_EMAIL`) vía Google OAuth. Opcionalmente, por cliente (`STORE_CONFIG.permitirLoginConCredenciales` en `lib/store-config.ts`), se puede habilitar además un login con correo y contraseña -- la contraseña se guarda como hash de bcrypt (`ADMIN_PASSWORD_HASH`), nunca en texto plano, y ese login tiene rate limiting propio (5 intentos / 15 min por IP).
 - `Content-Security-Policy` y demás headers de seguridad (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) en todas las rutas — ver `next.config.mjs`.
 - Rate limiting por IP en los endpoints públicos sin autenticación (`/api/leads`, `/api/contact`).
 - Validación de tipo y tamaño en la subida de imágenes; límites de tamaño en los payloads públicos.

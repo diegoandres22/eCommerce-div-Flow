@@ -3,15 +3,27 @@ import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
+import bcrypt from 'bcryptjs';
 import prisma from './prisma';
+import { STORE_CONFIG } from './store-config';
+import { checkRateLimit, getClientIp } from './rate-limit';
 
-// La cuenta de prueba da acceso admin completo sin pasar por Google -- solo
-// debe existir en demos/staging. Requiere un opt-in explícito
-// (ALLOW_TEST_ADMIN=true) ADEMÁS de TEST_ADMIN_USER/TEST_ADMIN_PASS: así,
-// si un cliente nuevo clona el repo y se olvida de borrar esas variables de
-// un .env de desarrollo, el provider ni siquiera se registra en producción
-// -- no hay superficie de ataque que además intentar fuerza bruta.
-const allowTestAdmin = process.env.ALLOW_TEST_ADMIN === 'true';
+// Login con correo y contraseña, alternativo a Google -- gateado por
+// STORE_CONFIG.permitirLoginConCredenciales (por cliente, ver
+// store-config.ts) Y por tener ADMIN_LOGIN_EMAIL/ADMIN_PASSWORD_HASH
+// cargadas. Si falta cualquiera de las dos cosas, el provider ni se
+// registra: no hay superficie de ataque extra por accidente en un cliente
+// que no pidió esta opción.
+//
+// La contraseña NUNCA se guarda en texto plano -- ADMIN_PASSWORD_HASH es un
+// hash de bcrypt (generado una sola vez, ver .env.example). Así, alguien con
+// acceso de lectura a las env vars de Vercel ve un hash, no la contraseña
+// real. La comparación usa bcrypt.compare(), que además es resistente a
+// ataques de timing (a diferencia de comparar strings con ===).
+const credentialsLoginEnabled =
+  STORE_CONFIG.permitirLoginConCredenciales &&
+  !!process.env.ADMIN_LOGIN_EMAIL &&
+  !!process.env.ADMIN_PASSWORD_HASH;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -20,26 +32,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-    // Cuenta de prueba (sin DB, sin Google) para que terceros puedan entrar
-    // al panel con acceso completo. Ver ALLOW_TEST_ADMIN/TEST_ADMIN_USER/
-    // TEST_ADMIN_PASS en .env -- nunca debe estar activa en producción.
-    ...(allowTestAdmin
+    ...(credentialsLoginEnabled
       ? [
           Credentials({
             id: 'credentials',
-            name: 'Cuenta de prueba',
+            name: 'Correo y contraseña',
             credentials: {
-              username: { label: 'Usuario', type: 'text' },
+              email: { label: 'Correo', type: 'email' },
               password: { label: 'Contraseña', type: 'password' },
             },
-            async authorize(credentials) {
-              if (
-                credentials?.username === process.env.TEST_ADMIN_USER &&
-                credentials?.password === process.env.TEST_ADMIN_PASS
-              ) {
-                return { id: 'test-admin', name: 'Usuario de prueba', email: 'test-admin@local' };
+            async authorize(credentials, request) {
+              // 5 intentos / 15 min por IP -- es un login real de admin
+              // expuesto a internet, más estricto que los endpoints
+              // públicos (leads/contacto).
+              const ip = getClientIp(request);
+              const { allowed } = checkRateLimit(`admin-login:${ip}`, 5, 15 * 60 * 1000);
+              if (!allowed) return null;
+
+              const email = credentials?.email;
+              const password = credentials?.password;
+              if (typeof email !== 'string' || typeof password !== 'string') {
+                return null;
               }
-              return null;
+
+              if (email !== process.env.ADMIN_LOGIN_EMAIL) return null;
+
+              const valid = await bcrypt.compare(
+                password,
+                process.env.ADMIN_PASSWORD_HASH!
+              );
+              if (!valid) return null;
+
+              return { id: 'admin-credentials', name: 'Administrador', email };
             },
           }),
         ]

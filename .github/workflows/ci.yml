@@ -42,6 +42,12 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_ci
+      # prisma/schema.prisma exige DIRECT_URL además de DATABASE_URL (Prisma
+      # la usa para correr migraciones sin pasar por un connection pooler).
+      # El Postgres de este job es un contenedor efímero sin pooler, así que
+      # acá las dos apuntan a la misma conexión -- en Supabase de verdad son
+      # distintas (ver .env.example).
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_ci
       NEXTAUTH_SECRET: ci-secret-${{ github.run_id }}
       NEXTAUTH_URL: http://localhost:3000
       ALLOWED_ADMIN_EMAIL: admin@ci.local
@@ -55,8 +61,9 @@ jobs:
       SMTP_PASS: ci-placeholder
       CONTACT_EMAIL_TO: ci@ci.local
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      # Sin TEST_ADMIN_USER/TEST_ADMIN_PASS ni ALLOW_TEST_ADMIN: la cuenta de
-      # prueba se queda deshabilitada también en CI, igual que en producción.
+      # Sin ADMIN_LOGIN_EMAIL/ADMIN_PASSWORD_HASH: el login con credenciales
+      # se queda deshabilitado también en CI, igual que en un cliente que no
+      # lo pidió (STORE_CONFIG.permitirLoginConCredenciales).
 
     steps:
       - uses: actions/checkout@v4
