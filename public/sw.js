@@ -2,8 +2,59 @@
 // Service worker mínimo, sin dependencias: solo hace instalable la tienda y
 // cachea catálogo/imágenes para que siga siendo navegable con conexión
 // inestable. No cachea /admin, /api ni /auth (datos privados o dinámicos).
-const CACHE_NAME = 'flow-ecommerce-v1';
+const CACHE_NAME = 'flow-ecommerce-v2';
 const PRECACHE_URLS = ['/', '/products'];
+
+// HTML mínimo, sin dependencias del build de Next.js (este archivo no pasa
+// por webpack, así que no puede importar STORE_CONFIG ni nada de lib/).
+// Se usa SOLO cuando falla la red Y no hay una copia cacheada de la ruta
+// exacta pedida -- antes de este fix, ese mismo caso servía a ciegas el
+// Home cacheado (`caches.match('/')`) para CUALQUIER ruta, mostrando
+// contenido real pero equivocado (la URL decía /cart y se veía el Home).
+// Mentir sobre qué página es es peor que avisar honestamente que no hay
+// conexión.
+const OFFLINE_HTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sin conexión</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #fafafa;
+      text-align: center;
+      padding: 24px;
+    }
+    p { margin: 0; color: #a1a1aa; max-width: 360px; }
+    button, a {
+      margin-top: 12px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      background: #fafafa;
+      color: #0a0a0a;
+      border: none;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sin conexión</h1>
+  <p>No pudimos cargar esta página. Revisá tu conexión e intentá de nuevo.</p>
+  <button onclick="location.reload()">Reintentar</button>
+  <a href="/">Ir al inicio</a>
+</body>
+</html>`;
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -70,7 +121,20 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match(request).then(cached => cached || caches.match('/')))
+        .catch(async () => {
+          // Solo se sirve caché si es un match EXACTO de la ruta pedida
+          // (`ignoreSearch` no se usa a propósito: /products?page=2 y
+          // /products son navegaciones distintas). Si no hay copia exacta,
+          // se muestra la página de "sin conexión" en vez de adivinar con
+          // el Home -- eso era lo que generaba el bug de "veo el Home pero
+          // la URL dice otra cosa".
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          return new Response(OFFLINE_HTML, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          });
+        })
     );
   }
 });

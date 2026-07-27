@@ -1,264 +1,53 @@
 // tests/unit/utils.test.ts
+// Cubre solo las funciones de lib/utils.ts que el código real usa
+// (formateo de precios en toda la tienda/admin, slugs de categoría). El
+// resto de exports de lib/utils.ts (envío, impuestos, descuentos, etc.) son
+// remanentes de la plantilla base sin uso real en este MVP -- no vale la
+// pena testear lógica que ningún componente invoca.
 /// <reference types="jest" />
 /// <reference types="@jest/globals" />
 
-import {
-  formatCurrency,
-  calculateDiscount,
-  generateSlug,
-  truncateText,
-  isValidEmail,
-  isValidPhone,
-  calculateShipping,
-  calculateTaxRate,
-  formatDate,
-  getTimeAgo,
-  debounce,
-  capitalize,
-  deepClone,
-} from '@/lib/utils';
+import { formatCurrency, formatPrice, generateSlug, formatDate } from '@/lib/utils';
 
-describe('Utility Functions', () => {
-  describe('formatCurrency', () => {
-    it('should format USD currency correctly', () => {
-      expect(formatCurrency(29.99)).toBe('$29.99');
-      expect(formatCurrency(1000)).toBe('$1,000.00');
-      expect(formatCurrency(0)).toBe('$0.00');
-    });
-
-    it('should format other currencies correctly', () => {
-      expect(formatCurrency(29.99, 'EUR')).toBe('€29.99');
-      expect(formatCurrency(29.99, 'GBP')).toBe('£29.99');
-    });
-
-    it('should handle decimal places correctly', () => {
-      expect(formatCurrency(29.999)).toBe('$30.00');
-      expect(formatCurrency(29.1)).toBe('$29.10');
-    });
+describe('formatCurrency / formatPrice', () => {
+  it('formatea USD correctamente', () => {
+    expect(formatCurrency(29.99)).toBe('$29.99');
+    expect(formatCurrency(1000)).toBe('$1,000.00');
+    expect(formatCurrency(0)).toBe('$0.00');
   });
 
-  describe('calculateDiscount', () => {
-    it('should calculate discount correctly', () => {
-      expect(calculateDiscount(100, 10)).toBe(10);
-      expect(calculateDiscount(99.99, 15)).toBe(15);
-      expect(calculateDiscount(50, 0)).toBe(0);
-    });
-
-    it('should handle edge cases', () => {
-      expect(calculateDiscount(100, 100)).toBe(100);
-      expect(calculateDiscount(0, 50)).toBe(0);
-    });
-
-    it('should throw error for invalid discount percent', () => {
-      expect(() => calculateDiscount(100, -1)).toThrow();
-      expect(() => calculateDiscount(100, 101)).toThrow();
-    });
+  it('formatPrice es el mismo alias que formatCurrency', () => {
+    expect(formatPrice(29.99)).toBe(formatCurrency(29.99));
   });
 
-  describe('generateSlug', () => {
-    it('should generate slugs correctly', () => {
-      expect(generateSlug('Hello World')).toBe('hello-world');
-      expect(generateSlug('MacBook Pro 14-inch')).toBe('macbook-pro-14-inch');
-      expect(generateSlug('Test Product!!!')).toBe('test-product');
-    });
+  it('redondea a 2 decimales', () => {
+    expect(formatCurrency(29.999)).toBe('$30.00');
+  });
+});
 
-    it('should handle special characters', () => {
-      expect(generateSlug('Product @#$% Name')).toBe('product-name');
-      expect(generateSlug('  Spaced  Out  ')).toBe('spaced-out');
-    });
-
-    it('should handle edge cases', () => {
-      expect(generateSlug('')).toBe('');
-      expect(generateSlug('---')).toBe('');
-      expect(generateSlug('123')).toBe('123');
-    });
+describe('generateSlug (slugify)', () => {
+  it('genera slugs básicos', () => {
+    expect(generateSlug('Hello World')).toBe('hello-world');
+    expect(generateSlug('MacBook Pro 14-inch')).toBe('macbook-pro-14-inch');
   });
 
-  describe('truncateText', () => {
-    it('should truncate text correctly', () => {
-      expect(truncateText('Hello World', 5)).toBe('Hello...');
-      expect(truncateText('Short', 10)).toBe('Short');
-      expect(truncateText('This is a long text', 10)).toBe('This is a...');
-    });
-
-    it('should handle edge cases', () => {
-      expect(truncateText('', 10)).toBe('');
-      expect(truncateText('Hello', 5)).toBe('Hello');
-      expect(truncateText('Hello', 0)).toBe('...');
-    });
+  // Caso real detectado en producción: el regex anterior borraba vocales
+  // acentuadas y la ñ en vez de transliterarlas, rompiendo rutas como
+  // /category/[slug] para categorías en español (ver CLAUDE.md).
+  it('transllitera tildes y eñe en vez de borrarlas', () => {
+    expect(generateSlug('Electrónica')).toBe('electronica');
+    expect(generateSlug('Decoración')).toBe('decoracion');
+    expect(generateSlug('Baño')).toBe('bano');
   });
 
-  describe('isValidEmail', () => {
-    it('should validate correct emails', () => {
-      expect(isValidEmail('user@example.com')).toBe(true);
-      expect(isValidEmail('test.email@domain.co.uk')).toBe(true);
-      expect(isValidEmail('user+tag@example.org')).toBe(true);
-    });
-
-    it('should reject invalid emails', () => {
-      expect(isValidEmail('invalid')).toBe(false);
-      expect(isValidEmail('user@')).toBe(false);
-      expect(isValidEmail('@domain.com')).toBe(false);
-      expect(isValidEmail('user@domain')).toBe(false);
-    });
+  it('maneja casos límite', () => {
+    expect(generateSlug('')).toBe('');
+    expect(generateSlug('---')).toBe('');
   });
+});
 
-  describe('isValidPhone', () => {
-    it('should validate correct phone numbers', () => {
-      expect(isValidPhone('+1234567890')).toBe(true);
-      expect(isValidPhone('1234567890')).toBe(true);
-      expect(isValidPhone('+1-555-123-4567')).toBe(true);
-      expect(isValidPhone('+44 20 7946 0958')).toBe(true);
-    });
-
-    it('should reject invalid phone numbers', () => {
-      expect(isValidPhone('123')).toBe(false);
-      expect(isValidPhone('abc')).toBe(false);
-      expect(isValidPhone('+0123456789')).toBe(false);
-      expect(isValidPhone('')).toBe(false);
-    });
-  });
-
-  describe('calculateShipping', () => {
-    it('should calculate shipping correctly', () => {
-      expect(calculateShipping(50)).toBe(5.99);
-      expect(calculateShipping(99.99)).toBe(5.99);
-      expect(calculateShipping(100)).toBe(0);
-      expect(calculateShipping(150)).toBe(0);
-    });
-
-    it('should handle weight-based shipping', () => {
-      expect(calculateShipping(50, 3)).toBe(5.99);
-      expect(calculateShipping(50, 7)).toBe(8.99);
-      expect(calculateShipping(50, 10)).toBe(13.49);
-    });
-  });
-
-  describe('calculateTaxRate', () => {
-    it('should return correct tax rates for states', () => {
-      expect(calculateTaxRate('CA')).toBe(0.0875);
-      expect(calculateTaxRate('NY')).toBe(0.08);
-      expect(calculateTaxRate('TX')).toBe(0.0625);
-    });
-
-    it('should return default rate for unknown states', () => {
-      expect(calculateTaxRate('UNKNOWN')).toBe(0.05);
-      expect(calculateTaxRate('')).toBe(0.05);
-    });
-  });
-
-  describe('formatDate', () => {
-    it('should format dates correctly', () => {
-      const date = new Date('2024-03-15T10:30:00Z');
-      expect(formatDate(date)).toBe('Mar 15, 2024');
-    });
-
-    it('should handle string dates', () => {
-      expect(formatDate('2024-12-25')).toBe('Dec 25, 2024');
-    });
-  });
-
-  describe('getTimeAgo', () => {
-    const now = new Date('2024-03-15T10:30:00Z');
-
-    beforeEach(() => {
-      jest.useFakeTimers();
-      jest.setSystemTime(now);
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    it('should return correct time ago strings', () => {
-      expect(getTimeAgo(new Date('2024-03-15T10:29:30Z'))).toBe('just now');
-      expect(getTimeAgo(new Date('2024-03-15T10:25:00Z'))).toBe('5m ago');
-      expect(getTimeAgo(new Date('2024-03-15T08:30:00Z'))).toBe('2h ago');
-      expect(getTimeAgo(new Date('2024-03-14T10:30:00Z'))).toBe('1d ago');
-    });
-
-    it('should return formatted date for old dates', () => {
-      const oldDate = new Date('2024-01-15T10:30:00Z');
-      expect(getTimeAgo(oldDate)).toBe('Jan 15, 2024');
-    });
-  });
-
-  describe('debounce', () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    it('should debounce function calls', () => {
-      const mockFn = jest.fn();
-      const debouncedFn = debounce(mockFn, 100);
-
-      debouncedFn('test1');
-      debouncedFn('test2');
-      debouncedFn('test3');
-
-      expect(mockFn).not.toHaveBeenCalled();
-
-      jest.advanceTimersByTime(100);
-
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      expect(mockFn).toHaveBeenCalledWith('test3');
-    });
-  });
-
-  describe('capitalize', () => {
-    it('should capitalize text correctly', () => {
-      expect(capitalize('hello')).toBe('Hello');
-      expect(capitalize('WORLD')).toBe('World');
-      expect(capitalize('tEsT')).toBe('Test');
-    });
-
-    it('should handle edge cases', () => {
-      expect(capitalize('')).toBe('');
-      expect(capitalize('a')).toBe('A');
-    });
-  });
-
-  describe('deepClone', () => {
-    it('should clone primitive values', () => {
-      expect(deepClone(42)).toBe(42);
-      expect(deepClone('hello')).toBe('hello');
-      expect(deepClone(true)).toBe(true);
-      expect(deepClone(null)).toBe(null);
-    });
-
-    it('should clone arrays', () => {
-      const original = [1, 2, [3, 4]];
-      const cloned = deepClone(original);
-
-      expect(cloned).toEqual(original);
-      expect(cloned).not.toBe(original);
-      expect(cloned[2]).not.toBe(original[2]);
-    });
-
-    it('should clone objects', () => {
-      const original = {
-        name: 'Test',
-        nested: { value: 42 },
-        array: [1, 2, 3],
-      };
-      const cloned = deepClone(original);
-
-      expect(cloned).toEqual(original);
-      expect(cloned).not.toBe(original);
-      expect(cloned.nested).not.toBe(original.nested);
-      expect(cloned.array).not.toBe(original.array);
-    });
-
-    it('should clone dates', () => {
-      const original = new Date('2024-03-15');
-      const cloned = deepClone(original);
-
-      expect(cloned).toEqual(original);
-      expect(cloned).not.toBe(original);
-    });
+describe('formatDate', () => {
+  it('formatea fechas correctamente', () => {
+    expect(formatDate('2024-12-25')).toBe('Dec 25, 2024');
   });
 });

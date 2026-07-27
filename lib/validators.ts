@@ -86,19 +86,23 @@ export const leadSchema = z.object({
   items: z
     .array(
       z.object({
-        productId: z.string().min(1),
-        name: z.string().min(1),
+        productId: z.string().min(1).max(100),
+        name: z.string().min(1).max(255),
         // Color elegido en el carrito, si el producto tiene colores. Le
         // permite a la confirmación de venta (app/api/admin/leads/[id]/route.ts)
         // descontar la fila específica de ProductColorStock en vez de
         // siempre el agregado del producto.
-        colorName: z.string().optional(),
-        price: z.number().nonnegative(),
-        quantity: z.number().int().positive(),
+        colorName: z.string().max(100).optional(),
+        price: z.number().nonnegative().max(999999),
+        quantity: z.number().int().positive().max(999),
       })
     )
-    .min(1, 'El carrito no puede estar vacío'),
-  totalAmount: z.number().nonnegative(),
+    // Es un endpoint público sin auth: los topes (50 líneas, strings
+    // acotados arriba) evitan que un payload arbitrariamente grande abuse
+    // de la DB o del envío de correo (sendNewLeadEmail formatea cada línea).
+    .min(1, 'El carrito no puede estar vacío')
+    .max(50, 'Demasiados productos en un solo pedido'),
+  totalAmount: z.number().nonnegative().max(99999999),
 });
 
 // Actualización masiva de precios (/admin/bulk-pricing). "categoryId" sirve

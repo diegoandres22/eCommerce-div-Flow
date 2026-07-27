@@ -391,6 +391,20 @@ async function seedBanners() {
 }
 
 async function main() {
+  // Guardrail: este seed es solo para probar la app en desarrollo (100
+  // productos falsos con fotos de loremflickr.com). Nunca debe correr
+  // contra la base de datos real de un cliente -- si alguien ejecuta
+  // `npm run db:seed` apuntando por error a producción, esto corta antes de
+  // insertar nada. Confirmar explícitamente con SEED_CONFIRM=true si de
+  // verdad hace falta re-sembrar un entorno que se identifica como producción.
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_CONFIRM !== 'true') {
+    console.error(
+      'NODE_ENV=production: este seed no corre acá para evitar cargar datos de prueba en el catálogo real de un cliente.\n' +
+        'Si de verdad querés sembrar este entorno, corré con SEED_CONFIRM=true.'
+    );
+    process.exit(1);
+  }
+
   console.log('Seeding categorías, subcategorías y productos...');
 
   const existingProducts = await prisma.product.count();

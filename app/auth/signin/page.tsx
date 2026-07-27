@@ -42,6 +42,10 @@ export default async function SignInPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  // Mismo flag que lib/auth.ts: si la cuenta de prueba no está habilitada,
+  // ni siquiera se muestra el formulario (evita confundir/invitar a probar
+  // un login que siempre va a fallar).
+  const allowTestAdmin = process.env.ALLOW_TEST_ADMIN === 'true';
   return (
     <div className="flex min-h-screen">
       {/* Panel de imagen: solo visible md+, la imagen y el overlay no
@@ -68,7 +72,9 @@ export default async function SignInPage({
         <div className="text-center">
           <h2 className="text-xl font-bold">Panel de Administrador</h2>
           <p className="text-sm text-muted-foreground">
-            Entra con el email autorizado o con la cuenta
+            {allowTestAdmin
+              ? 'Entra con el email autorizado o con la cuenta de prueba'
+              : 'Entra con el email autorizado'}
           </p>
         </div>
 
@@ -89,41 +95,45 @@ export default async function SignInPage({
           </SubmitButton>
         </form>
 
-        <div className="relative flex items-center">
-          <div className="flex-1 border-t" />
-          <span className="px-3 text-xs text-muted-foreground">
-            o cuenta
-          </span>
-          <div className="flex-1 border-t" />
-        </div>
+        {allowTestAdmin && (
+          <>
+            <div className="relative flex items-center">
+              <div className="flex-1 border-t" />
+              <span className="px-3 text-xs text-muted-foreground">
+                o cuenta
+              </span>
+              <div className="flex-1 border-t" />
+            </div>
 
-        <form action={signInWithCredentials} className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="username">Usuario</Label>
-            <Input
-              id="username"
-              name="username"
-              required
-              autoComplete="username"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="password">Contraseña</Label>
-            <PasswordInput
-              id="password"
-              name="password"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-          <SubmitButton
-            variant="outline"
-            loadingText="Verificando..."
-            className="w-full"
-          >
-            Ingresar
-          </SubmitButton>
-        </form>
+            <form action={signInWithCredentials} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="username">Usuario</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  required
+                  autoComplete="username"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="password">Contraseña</Label>
+                <PasswordInput
+                  id="password"
+                  name="password"
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <SubmitButton
+                variant="outline"
+                loadingText="Verificando..."
+                className="w-full"
+              >
+                Ingresar
+              </SubmitButton>
+            </form>
+          </>
+        )}
         </div>
       </div>
     </div>

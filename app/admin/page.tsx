@@ -25,9 +25,10 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SmartImage } from '@/components/ui/smart-image';
 import { getLeadStats } from '@/server/queries/leads';
-import { getActiveCatalogValue } from '@/server/queries/products';
+import { getActiveCatalogValue, getLowStockProducts } from '@/server/queries/products';
 import { getTopBrokenLinks } from '@/server/queries/broken-links';
 import { getTopPageVisits } from '@/server/queries/page-visits';
+import { getStockConfig } from '@/server/queries/settings';
 import { ClearBrokenLinksButton } from '@/components/admin/clear-broken-links-button';
 import { formatPrice, formatDateTime } from '@/lib/utils';
 
@@ -95,19 +96,46 @@ function MiniStat({
   label,
   value,
   secondary,
+  alert,
 }: {
   href: string;
   label: string;
   value: string | number;
   secondary?: { label: string; value: string | number };
+  // Variante ámbar para datos operativos que sí requieren acción (ej. stock
+  // bajo) -- mismo lenguaje visual que la card grande de leads pendientes,
+  // pero al tamaño de un MiniStat porque acá no bloquea nada, solo avisa.
+  alert?: boolean;
 }) {
   return (
     <Link href={href}>
-      <Card className="h-full transition-shadow hover:shadow-md">
+      <Card
+        className={
+          alert
+            ? 'h-full border-amber-500/60 bg-amber-500/10 transition-shadow hover:shadow-md'
+            : 'h-full transition-shadow hover:shadow-md'
+        }
+      >
         <CardContent className="flex items-center justify-between gap-3 p-4">
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="text-xl font-semibold">{value}</p>
+            <p
+              className={
+                alert
+                  ? 'text-xs text-amber-600/90 dark:text-amber-500/80'
+                  : 'text-xs text-muted-foreground'
+              }
+            >
+              {label}
+            </p>
+            <p
+              className={
+                alert
+                  ? 'text-xl font-semibold text-amber-700 dark:text-amber-400'
+                  : 'text-xl font-semibold'
+              }
+            >
+              {value}
+            </p>
           </div>
           {secondary && (
             <div className="shrink-0 text-right">
@@ -137,6 +165,8 @@ export default async function AdminDashboardPage() {
     catalogValue,
     topBrokenLinks,
     topPageVisits,
+    stockConfig,
+    lowStockProducts,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.product.count({ where: { isActive: true } }),
@@ -172,6 +202,8 @@ export default async function AdminDashboardPage() {
     getActiveCatalogValue(),
     getTopBrokenLinks(5),
     getTopPageVisits(5),
+    getStockConfig(),
+    getLowStockProducts(),
   ]);
 
   // `Product.categoryId` es SIEMPRE la categoría principal (obligatoria),
@@ -198,7 +230,7 @@ export default async function AdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Resumen de la tienda 
+          Resumen de la tienda
         </p>
       </div>
 
@@ -359,7 +391,7 @@ export default async function AdminDashboardPage() {
       <section>
         <SectionHeading
           title="Estado del Catálogo"
-          description="Inventario y organización -- consulta, no requiere acción diaria"
+          description="Inventario y organización"
           icon={Package}
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -381,6 +413,18 @@ export default async function AdminDashboardPage() {
             value={categoryCount}
             secondary={{ label: 'Subcategorías', value: subCategoryCount }}
           />
+          {/* Solo tiene sentido con el módulo de stock activo -- con el
+              switch apagado, stock queda en 0 por defecto para todos los
+              productos y esta card no aportaría nada (por diseño, no se
+              muestra en vez de mostrar un "0" engañoso). */}
+          {stockConfig.controlStockActivo && (
+            <MiniStat
+              href="/admin/inventario"
+              label="Stock bajo"
+              value={lowStockProducts.length}
+              alert={lowStockProducts.length > 0}
+            />
+          )}
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -466,7 +510,7 @@ export default async function AdminDashboardPage() {
       <section>
         <SectionHeading
           title="Salud del Sitio"
-          description="Diagnóstico técnico "
+          description="Diagnóstico técnico"
           icon={Activity}
         />
         <Card>

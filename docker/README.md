@@ -27,8 +27,9 @@ docker-compose up --build
 
 The main `docker-compose.yml` is located in the root directory and includes:
 - **PostgreSQL 15** - Database service
-- **Redis 7** - Caching layer
 - **Next.js App** - Application service (uses this Dockerfile)
+
+(No Redis — the project doesn't use it.)
 
 ## Prerequisites
 
@@ -66,10 +67,9 @@ After starting services, run Prisma migrations:
 ```bash
 # Execute migrations in the app container
 docker-compose exec app npx prisma migrate deploy
-
-# Or seed the database
-docker-compose exec app npm run db:seed
 ```
+
+`npm run db:seed` is for local development only (loads 100 fake products) — it refuses to run when `NODE_ENV=production` unless `SEED_CONFIRM=true` is passed explicitly. Never seed a real client's database; load the real catalog from `/admin/products`.
 
 ## Environment Variables
 
@@ -147,7 +147,7 @@ docker-compose build --no-cache
 ## Documentation
 
 - [../README.md](../README.md) - Main documentation
-- [../docs/setup/DEV_SETUP.md](../docs/setup/DEV_SETUP.md) - Development setup
+- [../CLAUDE.md](../CLAUDE.md) - Architecture and design decisions
 - [docker-compose.yml](../docker-compose.yml) - Service configuration
 
 ---

@@ -87,15 +87,6 @@ test-unit: ## Run unit tests
 test-watch: ## Run tests in watch mode
 	npm run test:watch
 
-test-e2e: ## Run E2E tests with Cypress
-	npm run test:e2e
-
-test-e2e-open: ## Open Cypress UI
-	npm run test:e2e:open
-
-test-a11y: ## Run accessibility tests
-	npm run test:a11y
-
 # Code Quality
 lint: ## Run linter
 	npm run lint

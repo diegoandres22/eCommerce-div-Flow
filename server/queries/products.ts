@@ -183,6 +183,34 @@ export async function getActiveCatalogValue() {
   );
 }
 
+export interface LowStockProduct {
+  id: string;
+  name: string;
+  stock: number;
+  stockMinimo: number;
+  images: string[];
+}
+
+// Productos activos con unidades por debajo (o igual) del umbral de alerta
+// que se carga por producto (`stockMinimo`), pero todavía con stock > 0 --
+// en 0 ya se muestra "Agotado" en toda la tienda, esto es la señal previa
+// para reponer antes de llegar ahí. Prisma no puede comparar dos columnas
+// entre sí dentro de un `where` (mismo motivo por el que getActiveCatalogValue
+// no puede multiplicar precio * stock en un `aggregate`), así que se trae el
+// catálogo activo con los campos mínimos y se filtra en JS -- razonable a la
+// escala de un MVP de un solo cliente. Alimenta la card de "Estado del
+// Catálogo" en el dashboard y el listado de `/admin/inventario`.
+export async function getLowStockProducts(): Promise<LowStockProduct[]> {
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, stock: true, stockMinimo: true, images: true },
+  });
+
+  return products
+    .filter(product => product.stock > 0 && product.stock <= product.stockMinimo)
+    .sort((a, b) => a.stock - b.stock);
+}
+
 export async function getCategoryBySlug(slug: string) {
   return prisma.category.findUnique({ where: { slug } });
 }

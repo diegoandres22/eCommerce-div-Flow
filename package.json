@@ -2,7 +2,7 @@
   "name": "nextjs-ecommerce",
   "version": "0.1.0",
   "private": true,
-  "description": "Demo e-commerce platform built with Next.js 15, TypeScript, and Prisma. Features admin dashboard, Stripe payments, newsletter subscriptions, custom 404, Docker deployment, and comprehensive testing. Educational resource for modern Next.js development patterns.",
+  "description": "eCommerce MVP single-tenant (WhatsApp checkout) construido con Next.js 15, TypeScript y Prisma. Sin pasarela de pago ni cuentas de cliente -- ver CLAUDE.md.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,14 +13,9 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:fix-images": "tsx prisma/scripts/fix-product-images.ts",
-    "db:test:setup": "tsx tests/scripts/setup-test-db.ts",
     "test": "jest",
     "test:unit": "jest tests/unit",
     "test:watch": "jest --watch",
-    "test:e2e": "cypress run",
-    "test:e2e:open": "cypress open",
-    "test:a11y": "jest --selectProjects=a11y",
-    "test:performance": "lhci autorun",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
