@@ -45,7 +45,15 @@ export function DataTablePagination<TData>({
           : `Mostrando ${rangeStart}-${rangeEnd} de ${totalRows}`}
       </p>
 
-      <div className="flex items-center gap-4">
+      {/* flex-wrap (no un solo `flex items-center gap-4` rígido): en mobile
+          "Filas por página" + selector + "Página X de Y" + los 4 botones de
+          navegación no entraban en una sola fila -- el conjunto se salía del
+          ancho de pantalla y era la causa real del scroll horizontal
+          reportado en /admin/products y /admin/categories (no la tabla en
+          sí, que ya tenía su propio overflow-auto interno). Con flex-wrap
+          cada grupo cae a su propia línea si no entra, sin forzar overflow
+          de la página. */}
+      <div className="flex flex-wrap items-center gap-3 sm:justify-end sm:gap-4">
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground">Filas por página</p>
           <Select

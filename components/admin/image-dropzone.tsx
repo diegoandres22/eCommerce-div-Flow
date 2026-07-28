@@ -8,7 +8,11 @@ import { SmartImage } from '@/components/ui/smart-image';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-const MAX_FILE_SIZE_MB = 5;
+// 4MB (no 5MB): ver el comentario del mismo límite en
+// app/api/admin/upload/route.ts -- el servidor corta acá, así que el
+// cliente debe avisar con el mismo número para no prometer algo que la API
+// va a rechazar.
+const MAX_FILE_SIZE_MB = 4;
 
 interface ImageDropzoneProps {
   images: string[];
@@ -56,7 +60,23 @@ export function ImageDropzone({
         method: 'POST',
         body: formData,
       });
-      const data = await res.json();
+
+      // Defensivo: con el fix del servidor (try/catch + siempre JSON) esto
+      // ya no debería pasar, pero si algo intermedio (proxy, timeout de la
+      // plataforma) devuelve un body vacío, `res.json()` explota con
+      // "Unexpected end of JSON input" y ese throw quedaba sin capturar --
+      // el usuario solo veía la subida "colgada" sin ningún toast de error.
+      let data: { urls?: string[]; error?: string };
+      try {
+        data = await res.json();
+      } catch {
+        toast({
+          title: 'Error al subir',
+          description: 'El servidor no respondió correctamente. Intenta de nuevo.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
       if (!res.ok) {
         toast({
@@ -67,7 +87,19 @@ export function ImageDropzone({
         return;
       }
 
-      onChange(multiple ? [...images, ...data.urls] : [data.urls[0]]);
+      const newUrls = data.urls;
+      if (!newUrls || newUrls.length === 0) return;
+      if (multiple) {
+        onChange([...images, ...newUrls]);
+      } else {
+        // Con noUncheckedIndexedAccess, newUrls[0] tipa como
+        // `string | undefined` aunque ya se validó length > 0 arriba -- TS
+        // no infiere esa garantía de un `.length` check. Desestructurar +
+        // chequear el valor puntual sí deja que TS lo angoste a `string`
+        // dentro del bloque, sin necesitar un `as string`.
+        const [firstUrl] = newUrls;
+        if (firstUrl) onChange([firstUrl]);
+      }
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
