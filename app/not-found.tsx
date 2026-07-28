@@ -47,13 +47,13 @@ export default async function NotFound() {
       <div className="flex flex-col items-center text-center">
         <div className="relative">
           <span
-            className="select-none text-[7rem] font-extrabold leading-none tracking-tight text-primary/10 sm:text-[10rem]"
+            className="select-none text-[7rem] font-extrabold leading-none tracking-tight text-primary-accent/10 sm:text-[10rem]"
             aria-hidden
           >
             404
           </span>
           <Compass
-            className="animate-float absolute inset-0 m-auto h-16 w-16 text-primary sm:h-20 sm:w-20"
+            className="animate-float absolute inset-0 m-auto h-16 w-16 text-primary-accent sm:h-20 sm:w-20"
             strokeWidth={1.5}
           />
         </div>
@@ -94,7 +94,7 @@ export default async function NotFound() {
               <Link
                 key={category.id}
                 href={`/category/${category.slug}`}
-                className="rounded-full border bg-background px-4 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
+                className="rounded-full border bg-background px-4 py-1.5 text-sm font-medium transition-colors hover:border-primary-accent hover:text-primary-accent"
               >
                 {category.name}
               </Link>

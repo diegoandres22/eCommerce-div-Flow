@@ -132,7 +132,7 @@ export function PredictiveSearch() {
             <button
               type="button"
               onClick={goToSearchPage}
-              className="block w-full border-t p-2 text-center text-sm font-medium text-primary hover:bg-accent"
+              className="block w-full border-t p-2 text-center text-sm font-medium text-primary-accent hover:bg-accent"
             >
               Ver todos los resultados
             </button>

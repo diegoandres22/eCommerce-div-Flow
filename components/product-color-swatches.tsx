@@ -59,7 +59,7 @@ export function ProductColorSwatches({
               className={cn(
                 'relative h-8 w-8 rounded-full border-2 transition-transform',
                 selectedIndex === index
-                  ? 'scale-110 border-primary'
+                  ? 'scale-110 border-primary-accent'
                   : 'border-transparent hover:scale-105',
                 outOfStock && 'cursor-not-allowed opacity-40 hover:scale-100'
               )}

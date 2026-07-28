@@ -213,7 +213,7 @@ export function CategoryManager({
               {isSub ? (
                 <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               ) : (
-                <FolderTree className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <FolderTree className="h-3.5 w-3.5 shrink-0 text-primary-accent" />
               )}
               <span className={isSub ? 'text-muted-foreground' : 'font-medium'}>
                 {category.name}

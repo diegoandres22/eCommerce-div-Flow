@@ -42,7 +42,7 @@ export function CategoriesMenu({ categories }: CategoriesMenuProps) {
         ))}
         {(hasMore || visible.length > 0) && <DropdownMenuSeparator />}
         <DropdownMenuItem asChild>
-          <Link href="/categories" className="font-medium text-primary">
+          <Link href="/categories" className="font-medium text-primary-accent">
             Ver más
           </Link>
         </DropdownMenuItem>

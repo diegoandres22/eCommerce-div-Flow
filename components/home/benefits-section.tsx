@@ -29,7 +29,7 @@ export function BenefitsSection() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
           {benefits.map(benefit => (
             <div key={benefit.title} className="flex flex-col items-center text-center sm:items-start sm:text-left">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-accent/10 text-primary-accent">
                 <benefit.icon className="h-6 w-6" />
               </div>
               <h3 className="mb-2 font-semibold">{benefit.title}</h3>

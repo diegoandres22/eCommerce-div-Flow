@@ -14,7 +14,7 @@ export function Footer() {
       <div className="container mx-auto flex flex-col items-center gap-3 px-4 py-8 text-center">
         <Link
           href="/contacto"
-          className="text-sm font-medium text-primary hover:underline"
+          className="text-sm font-medium text-primary-accent hover:underline"
         >
           Solicitar asesoría tecnológica
         </Link>
@@ -29,7 +29,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
-                className="text-muted-foreground transition-colors hover:text-primary"
+                className="text-muted-foreground transition-colors hover:text-primary-accent"
               >
                 <Instagram className="h-5 w-5" />
               </a>
@@ -40,7 +40,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="TikTok"
-                className="text-muted-foreground transition-colors hover:text-primary"
+                className="text-muted-foreground transition-colors hover:text-primary-accent"
               >
                 <Music2 className="h-5 w-5" />
               </a>
@@ -51,7 +51,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Facebook"
-                className="text-muted-foreground transition-colors hover:text-primary"
+                className="text-muted-foreground transition-colors hover:text-primary-accent"
               >
                 <Facebook className="h-5 w-5" />
               </a>
@@ -64,7 +64,7 @@ export function Footer() {
             {correoSoporte && (
               <a
                 href={`mailto:${correoSoporte}`}
-                className="flex items-center gap-1 hover:text-primary"
+                className="flex items-center gap-1 hover:text-primary-accent"
               >
                 <Mail className="h-3.5 w-3.5" />
                 {correoSoporte}
@@ -88,7 +88,7 @@ export function Footer() {
             href="https://diego-dev-psi.vercel.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-semibold text-foreground transition-colors hover:text-primary"
+            className="font-semibold text-foreground transition-colors hover:text-primary-accent"
           >
             &lt;div&gt;Flow c.a.
           </a>

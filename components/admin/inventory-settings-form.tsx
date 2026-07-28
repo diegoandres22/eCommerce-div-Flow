@@ -71,7 +71,7 @@ export function InventorySettingsForm({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Boxes className="h-5 w-5 text-primary" />
+            <Boxes className="h-5 w-5 text-primary-accent" />
             <CardTitle className="text-lg">Control de existencias</CardTitle>
           </div>
           <CardDescription>

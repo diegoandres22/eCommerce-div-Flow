@@ -82,8 +82,8 @@ function KpiCard({
             <p className="text-sm text-muted-foreground">{label}</p>
             <p className="mt-1 truncate text-3xl font-bold">{value}</p>
           </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <Icon className="h-4 w-4 text-primary" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-accent/10">
+            <Icon className="h-4 w-4 text-primary-accent" />
           </span>
         </CardContent>
       </Card>
@@ -572,7 +572,7 @@ export default async function AdminDashboardPage() {
                         última vez: {formatDateTime(visit.lastSeenAt)}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                    <span className="shrink-0 rounded-full bg-primary-accent/10 px-2 py-0.5 text-xs font-semibold text-primary-accent">
                       {visit.hits} {visit.hits === 1 ? 'visita' : 'visitas'}
                     </span>
                   </div>

@@ -75,14 +75,14 @@ export function ProductCard({
         {category && (
           <Link
             href={`/category/${category.slug}`}
-            className="text-xs text-muted-foreground transition-colors hover:text-primary"
+            className="text-xs text-muted-foreground transition-colors hover:text-primary-accent"
           >
             {category.name}
           </Link>
         )}
 
         <Link href={`/products/${id}`}>
-          <h3 className="mb-2 mt-1 line-clamp-2 text-sm font-medium transition-colors hover:text-primary">
+          <h3 className="mb-2 mt-1 line-clamp-2 text-sm font-medium transition-colors hover:text-primary-accent">
             {name}
           </h3>
         </Link>

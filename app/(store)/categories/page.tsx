@@ -28,7 +28,7 @@ export default async function CategoriesPage() {
             <div key={category.id} className="rounded-lg border p-4">
               <Link
                 href={`/category/${category.slug}`}
-                className="flex items-center gap-2 font-semibold hover:text-primary"
+                className="flex items-center gap-2 font-semibold hover:text-primary-accent"
               >
                 <FolderTree className="h-4 w-4" />
                 {category.name}
@@ -39,7 +39,7 @@ export default async function CategoriesPage() {
                     <li key={child.id}>
                       <Link
                         href={`/category/${child.slug}`}
-                        className="text-sm text-muted-foreground hover:text-primary"
+                        className="text-sm text-muted-foreground hover:text-primary-accent"
                       >
                         {child.name}
                       </Link>

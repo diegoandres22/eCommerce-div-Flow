@@ -30,17 +30,40 @@ function hexToHsl(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-// Decide si el texto sobre ese color debe ser casi-negro o casi-blanco,
-// según qué tan claro/oscuro es el fondo (fórmula estándar de luminancia
-// perceptual YIQ). Evita tener que pedirle al cliente un color de texto
-// combinado para cada color de marca -- se calcula solo.
-function readableForeground(hex: string): string {
+// Luminancia perceptual YIQ (fórmula estándar) -- true si el color es lo
+// bastante claro como para necesitar un texto oscuro encima (y, al revés,
+// como para NO contrastar sobre un fondo claro).
+function isLightColor(hex: string): boolean {
   const clean = hex.replace('#', '');
   const r = parseInt(clean.substring(0, 2), 16);
   const g = parseInt(clean.substring(2, 4), 16);
   const b = parseInt(clean.substring(4, 6), 16);
   const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 150 ? '0 0% 9%' : '0 0% 98%';
+  return yiq >= 150;
+}
+
+// Decide si el texto sobre ese color debe ser casi-negro o casi-blanco.
+// Evita tener que pedirle al cliente un color de texto combinado para cada
+// color de marca -- se calcula solo.
+function readableForeground(hex: string): string {
+  return isLightColor(hex) ? '0 0% 9%' : '0 0% 98%';
+}
+
+// Variante de --primary pensada para texto/ícono/borde usado DIRECTO sobre
+// el fondo de página o de card (ej. un link "Ver todo", un ícono suelto) --
+// no para un botón bg-primary, donde el color de marca sí debe verse igual
+// en los dos temas (eso lo sigue resolviendo --primary tal cual, sin tocar).
+// --primary se mantiene fijo entre temas a propósito (ver generateThemeStyleTag
+// más abajo), pero eso significa que si el color de marca es oscuro (como
+// suele pasar), un texto/ícono con ese color queda invisible en dark mode --
+// literalmente oscuro sobre oscuro. Acá se resuelve UNA vez a nivel de
+// token, no parchando cada componente: si el color de marca no va a
+// contrastar contra el fondo de este tema puntual, se usa var(--foreground)
+// en su lugar (que sí cambia con el tema por diseño) en vez de intentar
+// aclarar/oscurecer artificialmente un hue arbitrario.
+function accentForBackground(hex: string, backgroundIsDark: boolean): string {
+  const readable = backgroundIsDark ? isLightColor(hex) : !isLightColor(hex);
+  return readable ? hexToHsl(hex) : 'var(--foreground)';
 }
 
 // Genera el bloque de CSS que sobreescribe los colores de marca (primario,
@@ -65,12 +88,17 @@ export function generateThemeStyleTag(config: StoreConfig): string {
     acento: '--accent',
   };
 
-  const declarations = pairs
-    .map(([name, hex]) => {
-      const cssVar = cssVarByName[name];
-      return `${cssVar}: ${hexToHsl(hex)}; ${cssVar}-foreground: ${readableForeground(hex)};`;
-    })
-    .join(' ');
+  const declarationsFor = (backgroundIsDark: boolean) =>
+    pairs
+      .map(([name, hex]) => {
+        const cssVar = cssVarByName[name];
+        return `${cssVar}: ${hexToHsl(hex)}; ${cssVar}-foreground: ${readableForeground(hex)};`;
+      })
+      .join(' ') +
+    // Solo hace falta la variante "accent" para el color primario -- es el
+    // único que se usa como texto/ícono suelto en la interfaz (secundario y
+    // acento son fondos de UI, no colores de marca para texto).
+    ` --primary-accent: ${accentForBackground(config.colorPrimario, backgroundIsDark)};`;
 
-  return `:root { ${declarations} } .dark { ${declarations} }`;
+  return `:root { ${declarationsFor(false)} } .dark { ${declarationsFor(true)} }`;
 }

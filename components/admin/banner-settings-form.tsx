@@ -78,7 +78,7 @@ export function BannerSettingsForm({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-primary" />
+            <Megaphone className="h-5 w-5 text-primary-accent" />
             <CardTitle className="text-lg">
               Banner de la tienda / Anuncios destacados
             </CardTitle>

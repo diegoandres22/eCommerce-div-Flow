@@ -27,6 +27,10 @@ const config: Config = {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          // Variante theme-aware para texto/ícono/borde directo sobre el
+          // fondo de página o de card -- ver lib/theme.ts#accentForBackground.
+          // No usar en botones/badges bg-primary (ahí sigue yendo `primary`).
+          accent: 'hsl(var(--primary-accent))',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
