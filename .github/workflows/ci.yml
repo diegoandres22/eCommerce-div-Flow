@@ -66,9 +66,9 @@ jobs:
       # (STORE_CONFIG.permitirLoginConCredenciales).
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -97,9 +97,9 @@ jobs:
     name: Auditoría de dependencias
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -107,20 +107,26 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: npm audit (dependencias de producción)
-        run: npm audit --omit=dev --audit-level=high
+      # better-npm-audit (en vez de `npm audit` directo) lee .nsprc en la raíz
+      # del repo -- ahí están documentadas, una por una, las vulnerabilidades
+      # ya evaluadas y aceptadas (bundled dentro de next/node_modules, no
+      # dependencias directas nuestras, bloqueadas hasta que Vercel publique
+      # un next que las actualice). Cualquier vulnerabilidad alta NUEVA que
+      # no esté en .nsprc sigue rompiendo este job igual que antes.
+      - name: npm audit (dependencias de producción, con excepciones documentadas en .nsprc)
+        run: npx better-npm-audit audit --production --level high
 
   docker:
     name: Build de imagen Docker
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build (sin push, solo valida que el Dockerfile compile)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/Dockerfile
