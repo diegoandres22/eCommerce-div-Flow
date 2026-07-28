@@ -12,6 +12,19 @@ import { Label } from '@/components/ui/label';
 import { GoogleIcon } from '@/components/icons/google-icon';
 import { Logo } from '@/components/logo';
 
+// Mensajes propios para los errores reales de Auth.js que podemos recibir
+// acá (ver pages.error en lib/auth.ts) -- sin esto, "AccessDenied" (email de
+// Google válido pero no autorizado) caía en la pantalla genérica sin marca
+// de Auth.js. "CredentialsSignin" es el único que dispara nuestro propio
+// código (signInWithCredentials más abajo); el resto son un fallback por si
+// Auth.js redirige acá con algún otro código.
+const ERROR_MESSAGES: Record<string, string> = {
+  AccessDenied:
+    'Ese correo no está autorizado para entrar al panel. Pedile a un administrador que lo agregue a la lista de correos permitidos.',
+  CredentialsSignin: 'Usuario o contraseña incorrectos.',
+};
+const DEFAULT_ERROR_MESSAGE = 'No se pudo iniciar sesión. Intentá de nuevo.';
+
 async function signInWithGoogle() {
   'use server';
   await signIn('google', { redirectTo: '/admin' });
@@ -84,7 +97,7 @@ export default async function SignInPage({
 
         {error && (
           <p className="rounded-md bg-destructive/10 p-2 text-center text-sm text-destructive">
-            Usuario o contraseña incorrectos.
+            {ERROR_MESSAGES[error] ?? DEFAULT_ERROR_MESSAGE}
           </p>
         )}
 

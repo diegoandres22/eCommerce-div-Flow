@@ -90,7 +90,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       : []),
   ],
   session: { strategy: 'jwt' },
-  pages: { signIn: '/auth/signin' },
+  // `error` apunta a la misma página de login (en vez del error genérico de
+  // Auth.js, sin marca ni estilos) -- cuando el callback signIn de abajo
+  // rechaza un email de Google que no está en ALLOWED_ADMIN_EMAILS, Auth.js
+  // redirige acá con `?error=AccessDenied`, y app/auth/signin/page.tsx lo
+  // interpreta para mostrar un mensaje propio en vez de la pantalla default.
+  pages: { signIn: '/auth/signin', error: '/auth/signin' },
   callbacks: {
     // Dos caminos de acceso, ambos con acceso completo (no hay roles ni tabla
     // de permisos): (1) Google, cualquier email de ALLOWED_ADMIN_EMAILS
