@@ -18,6 +18,7 @@ import { TrackRecentlyViewed } from '@/components/track-recently-viewed';
 import { ProductPurchasePanel } from '@/components/product-purchase-panel';
 import { TrustBadges } from '@/components/trust-badges';
 import { parseProductColors } from '@/lib/product-colors';
+import { parseProductSizes } from '@/lib/product-sizes';
 import { formatPrice } from '@/lib/utils';
 import { isPrefetchRequest } from '@/lib/route-tracking';
 import { isEffectivelyOutOfStock, withEffectiveStock } from '@/lib/stock';
@@ -74,6 +75,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const productUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/products/${product.id}`;
   const colors = parseProductColors(product.colores);
+  const sizes = parseProductSizes(product.tallas);
   const outOfStock = isEffectivelyOutOfStock(product, controlStockActivo);
 
   // Datos estructurados para resultados enriquecidos de Google (precio,
@@ -193,6 +195,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               images: product.images,
             }}
             colors={colors}
+            sizes={sizes}
             controlStockActivo={controlStockActivo}
             stock={product.stock}
             colorStocks={product.colorStocks}

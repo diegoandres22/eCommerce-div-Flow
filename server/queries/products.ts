@@ -189,25 +189,45 @@ export interface LowStockProduct {
   stock: number;
   stockMinimo: number;
   images: string[];
+  colores: string;
+  tallas: string;
+  colorStocks: { id: string; colorName: string; talla: string; stock: number }[];
 }
 
-// Productos activos con unidades por debajo (o igual) del umbral de alerta
-// que se carga por producto (`stockMinimo`), pero todavía con stock > 0 --
-// en 0 ya se muestra "Agotado" en toda la tienda, esto es la señal previa
-// para reponer antes de llegar ahí. Prisma no puede comparar dos columnas
-// entre sí dentro de un `where` (mismo motivo por el que getActiveCatalogValue
-// no puede multiplicar precio * stock en un `aggregate`), así que se trae el
-// catálogo activo con los campos mínimos y se filtra en JS -- razonable a la
-// escala de un MVP de un solo cliente. Alimenta la card de "Estado del
-// Catálogo" en el dashboard y el listado de `/admin/inventario`.
+// Productos activos con unidades por debajo o igual al umbral de alerta
+// cargado por producto (`stockMinimo`) -- INCLUYE los que ya están en 0.
+// Antes excluía el 0 asumiendo que el badge "Agotado" de la tienda pública
+// ya alcanzaba como aviso, pero ese badge no lo ve el admin desde acá -- un
+// producto en 0 es el caso más urgente de todos, tiene que aparecer en esta
+// misma alerta, no depender de que alguien lo note navegando el catálogo
+// público. Prisma no puede comparar dos columnas entre sí dentro de un
+// `where` (mismo motivo por el que getActiveCatalogValue no puede
+// multiplicar precio * stock en un `aggregate`), así que se trae el catálogo
+// activo con los campos mínimos y se filtra en JS -- razonable a la escala
+// de un MVP de un solo cliente. Alimenta la card de "Estado del Catálogo" en
+// el dashboard y el listado de `/admin/inventario`. Trae también
+// colores/tallas/colorStocks (no solo lo mínimo para mostrar la fila) porque
+// el drawer de reposición rápida de /admin/inventario necesita esos datos
+// para desglosar el reabastecimiento por variante sin otra consulta aparte.
 export async function getLowStockProducts(): Promise<LowStockProduct[]> {
   const products = await prisma.product.findMany({
     where: { isActive: true },
-    select: { id: true, name: true, stock: true, stockMinimo: true, images: true },
+    select: {
+      id: true,
+      name: true,
+      stock: true,
+      stockMinimo: true,
+      images: true,
+      colores: true,
+      tallas: true,
+      colorStocks: {
+        select: { id: true, colorName: true, talla: true, stock: true },
+      },
+    },
   });
 
   return products
-    .filter(product => product.stock > 0 && product.stock <= product.stockMinimo)
+    .filter(product => product.stock <= product.stockMinimo)
     .sort((a, b) => a.stock - b.stock);
 }
 

@@ -20,15 +20,19 @@ import {
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter';
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
 import { SmartImage } from '@/components/ui/smart-image';
 import { useToast } from '@/components/ui/use-toast';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { ImageDropzone } from '@/components/admin/image-dropzone';
 import { ProductColorEditor } from '@/components/admin/product-color-editor';
 import { ProductColorStockEditor } from '@/components/admin/product-color-stock-editor';
+import { ProductSizeEditor } from '@/components/admin/product-size-editor';
 import { STORE_CONFIG } from '@/lib/store-config';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatAdminDateTime } from '@/lib/utils';
 import { parseProductColors } from '@/lib/product-colors';
+import { parseProductSizes } from '@/lib/product-sizes';
+import { variantStockKey } from '@/lib/stock';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +47,19 @@ import {
 type ProductWithCategory = Product & {
   category: { id: string; name: string };
   subCategory: { id: string; name: string } | null;
-  colorStocks: { colorName: string; stock: number }[];
+  colorStocks: { colorName: string; talla: string; stock: number }[];
+};
+
+// Etiquetas en español para el selector de columnas (DataTableViewOptions)
+// -- solo hace falta una entrada por columna ocultable (imagen/nombre/
+// acciones tienen enableHiding: false y ni aparecen en ese menú).
+const PRODUCT_COLUMN_LABELS: Record<string, string> = {
+  categoria: 'Categoría',
+  precio: 'Precio',
+  estado: 'Estado',
+  stock: 'Stock',
+  createdAt: 'Creado',
+  updatedAt: 'Editado',
 };
 
 const emptyForm = {
@@ -56,6 +72,7 @@ const emptyForm = {
   marca: '',
   modelo: '',
   colores: '',
+  tallas: '',
   isActive: true,
   isOutOfStock: false,
   stock: '0',
@@ -133,12 +150,16 @@ export function ProductManager({
       marca: product.marca,
       modelo: product.modelo,
       colores: product.colores,
+      tallas: product.tallas,
       isActive: product.isActive,
       isOutOfStock: product.isOutOfStock,
       stock: String(product.stock),
       stockMinimo: String(product.stockMinimo),
       colorStocks: Object.fromEntries(
-        product.colorStocks.map(c => [c.colorName, c.stock])
+        product.colorStocks.map(c => [
+          variantStockKey(c.colorName, c.talla),
+          c.stock,
+        ])
       ),
     });
     setShowForm(true);
@@ -148,15 +169,35 @@ export function ProductManager({
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Solo las filas de color que siguen existiendo en `form.colores` en
-      // este momento (si se borró un color en ProductColorEditor, su fila de
-      // stock no se reenvía). El total (`stock`) se recalcula server-side
-      // como la suma de estas filas cuando hay al menos una.
+      // Solo las combinaciones de color/talla que siguen existiendo en
+      // `form.colores`/`form.tallas` en este momento (si se borró un color o
+      // talla en su editor, su(s) fila(s) de stock no se reenvían). El total
+      // (`stock`) se recalcula server-side como la suma de estas filas
+      // cuando hay al menos una.
       const currentColors = parseProductColors(form.colores);
-      const colorStocksPayload = currentColors.map(color => ({
-        colorName: color.name,
-        stock: form.colorStocks[color.name] ?? 0,
-      }));
+      const currentSizes = parseProductSizes(form.tallas);
+      let colorStocksPayload: { colorName: string; talla: string; stock: number }[] = [];
+      if (currentColors.length > 0 && currentSizes.length > 0) {
+        colorStocksPayload = currentColors.flatMap(color =>
+          currentSizes.map(size => ({
+            colorName: color.name,
+            talla: size,
+            stock: form.colorStocks[variantStockKey(color.name, size)] ?? 0,
+          }))
+        );
+      } else if (currentColors.length > 0) {
+        colorStocksPayload = currentColors.map(color => ({
+          colorName: color.name,
+          talla: '',
+          stock: form.colorStocks[variantStockKey(color.name, '')] ?? 0,
+        }));
+      } else if (currentSizes.length > 0) {
+        colorStocksPayload = currentSizes.map(size => ({
+          colorName: '',
+          talla: size,
+          stock: form.colorStocks[variantStockKey('', size)] ?? 0,
+        }));
+      }
 
       const payload = {
         name: form.name,
@@ -168,6 +209,7 @@ export function ProductManager({
         marca: form.marca,
         modelo: form.modelo,
         colores: form.colores,
+        tallas: form.tallas,
         isActive: form.isActive,
         isOutOfStock: form.isOutOfStock,
         stock: parseInt(form.stock) || 0,
@@ -286,6 +328,7 @@ export function ProductManager({
       },
       {
         accessorKey: 'name',
+        enableHiding: false,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Nombre" />
         ),
@@ -361,6 +404,28 @@ export function ProductManager({
       },
       ...(controlStockActivo ? [stockColumn] : []),
       {
+        accessorKey: 'createdAt',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Creado" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            {formatAdminDateTime(getValue<Date>())}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'updatedAt',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Editado" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            {formatAdminDateTime(getValue<Date>())}
+          </span>
+        ),
+      },
+      {
         id: 'acciones',
         header: () => <div className="text-right">Acciones</div>,
         enableSorting: false,
@@ -433,13 +498,16 @@ export function ProductManager({
             </Button>
           )}
         </div>
-        <Button
-          onClick={() => setShowForm(true)}
-          disabled={categories.length === 0}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo producto
-        </Button>
+        <div className="flex items-center gap-2">
+          <DataTableViewOptions table={table} columnLabels={PRODUCT_COLUMN_LABELS} />
+          <Button
+            onClick={() => setShowForm(true)}
+            disabled={categories.length === 0}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo producto
+          </Button>
+        </div>
       </div>
     );
   };
@@ -602,19 +670,37 @@ export function ProductManager({
             </div>
           )}
 
+          <div>
+            <Label>Tallas disponibles (opcional)</Label>
+            <div className="mt-2">
+              <ProductSizeEditor
+                value={form.tallas}
+                onChange={serialized =>
+                  setForm(prev => ({ ...prev, tallas: serialized }))
+                }
+              />
+            </div>
+          </div>
+
           {controlStockActivo && (() => {
             const parsedColors = parseProductColors(form.colores);
+            const parsedSizes = parseProductSizes(form.tallas);
+            const hasVariants = parsedColors.length > 0 || parsedSizes.length > 0;
             return (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {parsedColors.length > 0 ? (
+                {hasVariants ? (
                   <div className="sm:col-span-2">
                     <ProductColorStockEditor
                       colors={parsedColors}
+                      sizes={parsedSizes}
                       stocks={form.colorStocks}
-                      onChange={(colorName, stock) =>
+                      onChange={(colorName, talla, stock) =>
                         setForm(prev => ({
                           ...prev,
-                          colorStocks: { ...prev.colorStocks, [colorName]: stock },
+                          colorStocks: {
+                            ...prev.colorStocks,
+                            [variantStockKey(colorName, talla)]: stock,
+                          },
                         }))
                       }
                     />

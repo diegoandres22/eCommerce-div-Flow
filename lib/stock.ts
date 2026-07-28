@@ -1,12 +1,14 @@
 // Location: lib/stock.ts
 //
 // Helper compartido entre app/api/admin/products/route.ts y [id]/route.ts:
-// cuando un producto tiene colorStocks (stock por color), Product.stock deja
-// de ser editable a mano y pasa a ser la suma de esas filas -- así el
-// agregado nunca queda desincronizado del detalle por color. Si no hay
-// colores, se respeta el valor de stock que mandó el formulario.
+// cuando un producto tiene colorStocks (stock por variante -- color, talla,
+// o la combinación de ambos, ver prisma/schema.prisma#ProductColorStock),
+// Product.stock deja de ser editable a mano y pasa a ser la suma de esas
+// filas -- así el agregado nunca queda desincronizado del detalle. Si no hay
+// variantes, se respeta el valor de stock que mandó el formulario.
 export interface ColorStockInput {
   colorName: string;
+  talla: string;
   stock: number;
 }
 
@@ -16,6 +18,13 @@ export function resolveProductStock(
 ): number {
   if (colorStocks.length === 0) return stock;
   return colorStocks.reduce((sum, c) => sum + c.stock, 0);
+}
+
+// Clave compuesta para indexar filas de stock por variante en un Map --
+// mismo criterio en el admin (editor de stock) y en la tienda (selector de
+// compra), así una fila "Rojo + M" y "Rojo" (sin talla) no colisionan.
+export function variantStockKey(colorName: string, talla: string): string {
+  return `${colorName}|${talla}`;
 }
 
 // Con el módulo de stock activo, "agotado" se deriva de `stock <= 0` en vez

@@ -59,6 +59,7 @@ export async function sendContactEmail(data: ContactEmailData) {
 interface NewLeadEmailItem {
   name: string;
   colorName?: string;
+  talla?: string;
   price: number;
   quantity: number;
 }
@@ -77,8 +78,11 @@ export async function sendNewLeadEmail(data: NewLeadEmailData) {
   const to = process.env.CONTACT_EMAIL_TO || 'diego.a.v3005@gmail.com';
   const adminUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/leads`;
 
-  const itemLine = (item: NewLeadEmailItem) =>
-    `${item.name}${item.colorName ? ` (${item.colorName})` : ''} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`;
+  const itemLine = (item: NewLeadEmailItem) => {
+    const details = [item.colorName, item.talla].filter(Boolean);
+    const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
+    return `${item.name}${suffix} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`;
+  };
 
   await getTransporter().sendMail({
     from: `"${STORE_CONFIG.nombre}" <${process.env.SMTP_USER}>`,

@@ -42,9 +42,15 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_ci
+      # prisma/schema.prisma exige DIRECT_URL además de DATABASE_URL (Prisma
+      # la usa para correr migraciones sin pasar por un connection pooler).
+      # El Postgres de este job es un contenedor efímero sin pooler, así que
+      # acá las dos apuntan a la misma conexión -- en Supabase de verdad son
+      # distintas (ver .env.example).
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_ci
       NEXTAUTH_SECRET: ci-secret-${{ github.run_id }}
       NEXTAUTH_URL: http://localhost:3000
-      ALLOWED_ADMIN_EMAIL: admin@ci.local
+      ALLOWED_ADMIN_EMAILS: admin@ci.local
       GOOGLE_CLIENT_ID: ci-placeholder
       GOOGLE_CLIENT_SECRET: ci-placeholder
       SUPABASE_URL: https://ci-placeholder.supabase.co
@@ -55,13 +61,14 @@ jobs:
       SMTP_PASS: ci-placeholder
       CONTACT_EMAIL_TO: ci@ci.local
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      # Sin TEST_ADMIN_USER/TEST_ADMIN_PASS ni ALLOW_TEST_ADMIN: la cuenta de
-      # prueba se queda deshabilitada también en CI, igual que en producción.
+      # Sin ADMIN_CREDENTIALS: el login con correo y contraseña se queda
+      # deshabilitado también en CI, igual que en un cliente que no lo pidió
+      # (STORE_CONFIG.permitirLoginConCredenciales).
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -90,9 +97,9 @@ jobs:
     name: Auditoría de dependencias
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -100,20 +107,26 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: npm audit (dependencias de producción)
-        run: npm audit --omit=dev --audit-level=high
+      # better-npm-audit (en vez de `npm audit` directo) lee .nsprc en la raíz
+      # del repo -- ahí están documentadas, una por una, las vulnerabilidades
+      # ya evaluadas y aceptadas (bundled dentro de next/node_modules, no
+      # dependencias directas nuestras, bloqueadas hasta que Vercel publique
+      # un next que las actualice). Cualquier vulnerabilidad alta NUEVA que
+      # no esté en .nsprc sigue rompiendo este job igual que antes.
+      - name: npm audit (dependencias de producción, con excepciones documentadas en .nsprc)
+        run: npx better-npm-audit audit --production --level high
 
   docker:
     name: Build de imagen Docker
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build (sin push, solo valida que el Dockerfile compile)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/Dockerfile

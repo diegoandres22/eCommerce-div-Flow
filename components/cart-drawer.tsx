@@ -96,7 +96,7 @@ export function CartDrawer() {
             <div className="flex-1 space-y-4 overflow-y-auto py-4">
               {items.map(item => (
                 <div
-                  key={`${item.productId}-${item.colorName ?? ''}`}
+                  key={`${item.productId}-${item.colorName ?? ''}-${item.talla ?? ''}`}
                   className="flex items-center space-x-4 rounded-lg border p-4"
                 >
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -118,9 +118,14 @@ export function CartDrawer() {
                         {item.product.name}
                       </h4>
                     </Link>
-                    {item.colorName && (
+                    {(item.colorName || item.talla) && (
                       <p className="text-xs text-muted-foreground">
-                        Color: {item.colorName}
+                        {[
+                          item.colorName && `Color: ${item.colorName}`,
+                          item.talla && `Talla: ${item.talla}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </p>
                     )}
                     <p className="mt-1 text-sm font-semibold">
@@ -132,7 +137,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity - 1, item.colorName)
+                          updateQuantity(item.productId, item.quantity - 1, item.colorName, item.talla)
                         }
                         disabled={item.quantity <= 1}
                         className="h-6 w-6"
@@ -146,7 +151,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity + 1, item.colorName)
+                          updateQuantity(item.productId, item.quantity + 1, item.colorName, item.talla)
                         }
                         className="h-6 w-6"
                       >
@@ -159,7 +164,7 @@ export function CartDrawer() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeItem(item.productId, item.colorName)}
+                      onClick={() => removeItem(item.productId, item.colorName, item.talla)}
                       className="h-6 w-6 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />

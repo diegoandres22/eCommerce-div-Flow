@@ -27,9 +27,10 @@ import {
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filter';
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
 import { useToast } from '@/components/ui/use-toast';
 import { RequiredMark } from '@/components/ui/required-mark';
-import { cn } from '@/lib/utils';
+import { cn, formatAdminDateTime } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +41,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+// Etiquetas en español para el selector de columnas (DataTableViewOptions)
+// -- "nombre"/"acciones" tienen enableHiding: false y ni aparecen ahí.
+const CATEGORY_COLUMN_LABELS: Record<string, string> = {
+  slug: 'Slug',
+  tipo: 'Tipo',
+  createdAt: 'Creado',
+  updatedAt: 'Editado',
+};
 
 function slugify(text: string) {
   return text
@@ -191,6 +201,7 @@ export function CategoryManager({
     () => [
       {
         accessorKey: 'name',
+        enableHiding: false,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Nombre" />
         ),
@@ -255,6 +266,28 @@ export function CategoryManager({
             </div>
           );
         },
+      },
+      {
+        accessorKey: 'createdAt',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Creado" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            {formatAdminDateTime(getValue<Date>())}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'updatedAt',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Editado" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            {formatAdminDateTime(getValue<Date>())}
+          </span>
+        ),
       },
       {
         id: 'acciones',
@@ -324,10 +357,13 @@ export function CategoryManager({
             </Button>
           )}
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva categoría
-        </Button>
+        <div className="flex items-center gap-2">
+          <DataTableViewOptions table={table} columnLabels={CATEGORY_COLUMN_LABELS} />
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva categoría
+          </Button>
+        </div>
       </div>
     );
   };

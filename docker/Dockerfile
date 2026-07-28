@@ -9,7 +9,16 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# .npmrc* (legacy-peer-deps=true) tiene que copiarse ACÁ, antes de `npm ci`
+# -- sin este archivo, npm resuelve peer deps en modo estricto y falla con
+# ERESOLVE (el conflicto real es @typescript-eslint/eslint-plugin@6, que
+# pide eslint@7/8, contra el eslint@9 que usa el proyecto -- tolerado a
+# propósito, ver CLAUDE.md). El job de GitHub Actions no lo sufre porque
+# hace checkout del repo completo (con .npmrc incluido) antes de correr
+# `npm ci`; el build de Docker en cambio solo copiaba estos archivos
+# puntuales para aprovechar el cache de capas, y .npmrc se había quedado
+# afuera de esa lista.
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \

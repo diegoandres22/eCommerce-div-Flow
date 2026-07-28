@@ -11,27 +11,46 @@ type Tx = Prisma.TransactionClient;
 // -- se llama siempre que se toca una fila de color puntual, para que el
 // agregado nunca quede desincronizado del detalle (ver lib/stock.ts#resolveProductStock,
 // misma regla que usa el guardado del producto en el admin).
+//
+// `updatedAt` se reenvía tal cual (sin tocar) -- Prisma solo autocompleta
+// `@updatedAt` cuando el campo NO viene en el `data`, así que pasarlo
+// explícito con su propio valor anterior anula el autoincremento. Esto es a
+// propósito: un descuento de stock por confirmar una venta es automático,
+// no una edición real del admin -- no debe mover la "fecha de edición" que
+// se muestra en las tablas de /admin/products.
 async function resyncAggregateStock(tx: Tx, productId: string) {
-  const rows = await tx.productColorStock.findMany({ where: { productId } });
+  const [rows, product] = await Promise.all([
+    tx.productColorStock.findMany({ where: { productId } }),
+    tx.product.findUnique({ where: { id: productId }, select: { updatedAt: true } }),
+  ]);
   const total = rows.reduce((sum, row) => sum + row.stock, 0);
-  await tx.product.update({ where: { id: productId }, data: { stock: total } });
+  await tx.product.update({
+    where: { id: productId },
+    data: {
+      stock: total,
+      ...(product ? { updatedAt: product.updatedAt } : {}),
+    },
+  });
 }
 
 // Suma (positivo o negativo) el stock de un ítem cotizado. Si el ítem tiene
-// colorName, ajusta esa fila puntual de ProductColorStock y resincroniza el
-// agregado del producto -- si no tiene color, ajusta directo Product.stock.
+// colorName y/o talla, ajusta esa fila puntual de ProductColorStock (clave
+// compuesta productId+colorName+talla, normalizando undefined a '' igual que
+// el resto del carrito/lead) y resincroniza el agregado del producto -- si
+// no tiene ninguno de los dos, ajusta directo Product.stock.
 // `delta` negativo = descuenta (confirmar venta), positivo = repone (revertir).
 async function applyStockDelta(tx: Tx, item: LeadItem, delta: number) {
-  if (item.colorName) {
+  if (item.colorName || item.talla) {
     const colorRow = await tx.productColorStock.findUnique({
       where: {
-        productId_colorName: {
+        productId_colorName_talla: {
           productId: item.productId,
-          colorName: item.colorName,
+          colorName: item.colorName ?? '',
+          talla: item.talla ?? '',
         },
       },
     });
-    // Si la fila de color ya no existe (se borró/renombró después de
+    // Si la fila de la variante ya no existe (se borró/renombró después de
     // cotizado), no hay de dónde descontar con certeza -- se ignora, igual
     // que un producto borrado.
     if (!colorRow) return;
@@ -46,13 +65,15 @@ async function applyStockDelta(tx: Tx, item: LeadItem, delta: number) {
 
   const product = await tx.product.findUnique({
     where: { id: item.productId },
-    select: { stock: true },
+    select: { stock: true, updatedAt: true },
   });
   if (!product) return;
 
+  // Mismo criterio que resyncAggregateStock: se reenvía updatedAt tal cual
+  // para que este ajuste automático no cuente como una edición del admin.
   await tx.product.update({
     where: { id: item.productId },
-    data: { stock: Math.max(0, product.stock + delta) },
+    data: { stock: Math.max(0, product.stock + delta), updatedAt: product.updatedAt },
   });
 }
 

@@ -44,6 +44,14 @@ export const STORE_CONFIG = {
   mostrarFavoritos: true,
   mostrarVistosRecientemente: true,
   mostrarColoresDeProducto: true,
+
+  // ── Acceso al panel de administración ──
+  // true = además de Google, se puede entrar a /admin con correo y
+  // contraseña (ver ADMIN_CREDENTIALS en .env, admite varios admins).
+  // Pensado para clientes que piden explícitamente esta opción -- por
+  // defecto, en un cliente nuevo, dejalo en false y que el acceso sea solo
+  // por Google.
+  permitirLoginConCredenciales: true,
 };
 
 export type StoreConfig = typeof STORE_CONFIG;

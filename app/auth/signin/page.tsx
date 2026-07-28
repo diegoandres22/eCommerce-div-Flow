@@ -3,6 +3,8 @@ import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { AuthError } from 'next-auth';
 import { signIn } from '@/lib/auth';
+import { STORE_CONFIG } from '@/lib/store-config';
+import { getAdminCredentials } from '@/lib/admin-accounts';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -19,7 +21,7 @@ async function signInWithCredentials(formData: FormData) {
   'use server';
   try {
     await signIn('credentials', {
-      username: formData.get('username'),
+      usuario: formData.get('usuario'),
       password: formData.get('password'),
       redirectTo: '/admin',
     });
@@ -42,10 +44,12 @@ export default async function SignInPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  // Mismo flag que lib/auth.ts: si la cuenta de prueba no está habilitada,
-  // ni siquiera se muestra el formulario (evita confundir/invitar a probar
-  // un login que siempre va a fallar).
-  const allowTestAdmin = process.env.ALLOW_TEST_ADMIN === 'true';
+  // Mismo criterio que lib/auth.ts: si este cliente no tiene habilitado el
+  // login con credenciales, ni siquiera se muestra el formulario (evita
+  // confundir/invitar a probar un login que siempre va a fallar).
+  const credentialsLoginEnabled =
+    STORE_CONFIG.permitirLoginConCredenciales &&
+    getAdminCredentials().length > 0;
   return (
     <div className="flex min-h-screen">
       {/* Panel de imagen: solo visible md+, la imagen y el overlay no
@@ -72,9 +76,9 @@ export default async function SignInPage({
         <div className="text-center">
           <h2 className="text-xl font-bold">Panel de Administrador</h2>
           <p className="text-sm text-muted-foreground">
-            {allowTestAdmin
-              ? 'Entra con el email autorizado o con la cuenta de prueba'
-              : 'Entra con el email autorizado'}
+            {credentialsLoginEnabled
+              ? 'Entra con un email autorizado o con tu usuario y contraseña'
+              : 'Entra con un email autorizado'}
           </p>
         </div>
 
@@ -95,22 +99,23 @@ export default async function SignInPage({
           </SubmitButton>
         </form>
 
-        {allowTestAdmin && (
+        {credentialsLoginEnabled && (
           <>
             <div className="relative flex items-center">
               <div className="flex-1 border-t" />
               <span className="px-3 text-xs text-muted-foreground">
-                o cuenta
+                o usuario y contraseña
               </span>
               <div className="flex-1 border-t" />
             </div>
 
             <form action={signInWithCredentials} className="space-y-3">
               <div className="space-y-1">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="usuario">Usuario o correo</Label>
                 <Input
-                  id="username"
-                  name="username"
+                  id="usuario"
+                  name="usuario"
+                  type="text"
                   required
                   autoComplete="username"
                 />

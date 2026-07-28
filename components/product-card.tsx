@@ -57,7 +57,14 @@ export function ProductCard({
             variant="secondary"
             size="sm"
             disabled={isOutOfStock}
-            className="w-full bg-background/90 hover:bg-background"
+            // `variant="secondary"` trae `text-secondary-foreground` -- un
+            // color de marca fijo, igual en claro/oscuro a propósito (ver
+            // lib/theme.ts). Acá se pisa el fondo con `bg-background/90`
+            // (que sí cambia con el tema) sin pisar el texto, así que en
+            // tema oscuro quedaba texto casi negro sobre fondo casi negro,
+            // invisible. Fix: `text-foreground` es la pareja correcta de
+            // `background` -- los dos cambian juntos con el tema.
+            className="w-full bg-background/90 text-foreground hover:bg-background"
           >
             {isOutOfStock ? 'Agotado' : undefined}
           </AddToCart>
