@@ -4,8 +4,17 @@ import { formatPrice } from './utils';
 interface OrderItem {
   name: string;
   colorName?: string;
+  talla?: string;
   quantity: number;
   price: number;
+}
+
+// Color y talla son independientes entre sí -- un ítem puede traer los dos,
+// uno solo, o ninguno. Arma "(Color, Talla)" con lo que haya, sin paréntesis
+// vacíos cuando no hay ninguno de los dos.
+function formatItemDetails(item: OrderItem): string {
+  const details = [item.colorName, item.talla].filter(Boolean);
+  return details.length > 0 ? ` (${details.join(', ')})` : '';
 }
 
 // Arma el link wa.me con el resumen del pedido preformateado.
@@ -17,7 +26,7 @@ export function buildWhatsAppOrderLink(
 ) {
   const lines = items.map(
     item =>
-      `- ${item.name}${item.colorName ? ` (${item.colorName})` : ''} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`
+      `- ${item.name}${formatItemDetails(item)} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`
   );
 
   const message = [

@@ -73,12 +73,12 @@ Ver [`.env.example`](.env.example) para el listado completo con explicación de 
 | `DIRECT_URL` | Conexión directa a PostgreSQL (sin pooler), solo para migraciones |
 | `NEXTAUTH_SECRET` / `NEXTAUTH_URL` | Sesión del panel admin |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login del admin vía Google |
-| `ALLOWED_ADMIN_EMAIL` | Único email autorizado a entrar por Google |
+| `ALLOWED_ADMIN_EMAILS` | Emails autorizados a entrar por Google (lista separada por comas) |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Storage de imágenes |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `CONTACT_EMAIL_TO` | Correo de contacto y notificación de leads |
 | `NEXT_PUBLIC_APP_URL` | URL pública del sitio |
 
-`ADMIN_LOGIN_EMAIL` + `ADMIN_PASSWORD_HASH` habilitan el login con correo y contraseña (además de Google) -- requiere también `permitirLoginConCredenciales: true` en `lib/store-config.ts` para ese cliente.
+`ADMIN_CREDENTIALS` habilita el login con usuario y contraseña (además de Google) -- lista separada por comas de pares `usuario:hashBcrypt`, uno por admin (el usuario puede ser un email real o un usuario simple, ej. una cuenta de prueba) -- requiere también `permitirLoginConCredenciales: true` en `lib/store-config.ts` para ese cliente.
 
 ## 📁 Estructura del proyecto
 
@@ -126,7 +126,7 @@ También existe un `Makefile` con atajos equivalentes (`make dev`, `make db-setu
 
 ## 🔐 Seguridad
 
-- Login del admin restringido a un único email (`ALLOWED_ADMIN_EMAIL`) vía Google OAuth. Opcionalmente, por cliente (`STORE_CONFIG.permitirLoginConCredenciales` en `lib/store-config.ts`), se puede habilitar además un login con correo y contraseña -- la contraseña se guarda como hash de bcrypt (`ADMIN_PASSWORD_HASH`), nunca en texto plano, y ese login tiene rate limiting propio (5 intentos / 15 min por IP).
+- Login del admin restringido a la lista de emails autorizados (`ALLOWED_ADMIN_EMAILS`) vía Google OAuth. Opcionalmente, por cliente (`STORE_CONFIG.permitirLoginConCredenciales` en `lib/store-config.ts`), se puede habilitar además un login con usuario y contraseña -- una lista de admins en `ADMIN_CREDENTIALS`, cada contraseña guardada como hash de bcrypt, nunca en texto plano, y ese login tiene rate limiting propio (5 intentos / 15 min por IP).
 - `Content-Security-Policy` y demás headers de seguridad (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) en todas las rutas — ver `next.config.mjs`.
 - Rate limiting por IP en los endpoints públicos sin autenticación (`/api/leads`, `/api/contact`).
 - Validación de tipo y tamaño en la subida de imágenes; límites de tamaño en los payloads públicos.

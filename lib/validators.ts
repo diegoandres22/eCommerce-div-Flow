@@ -30,6 +30,10 @@ export const productSchema = z.object({
   // lib/product-colors.ts). Opcional: no todos los productos tienen
   // variantes de color.
   colores: z.string().default(''),
+  // Tallas del producto como "38,39,40,41" o "S,M,L,XL" (ver
+  // lib/product-sizes.ts). Opcional e independiente de `colores`: un
+  // producto puede tener talla, color, ambos o ninguno.
+  tallas: z.string().default(''),
   isActive: z.boolean().default(true),
   // Independiente de isActive: producto visible pero no comprable. Solo se
   // edita a mano cuando controlStockActivo está apagado -- con el módulo de
@@ -43,13 +47,15 @@ export const productSchema = z.object({
     .int()
     .min(0, 'El umbral no puede ser negativo')
     .default(3),
-  // Solo relevante si el producto tiene `colores`: una fila por color con su
+  // Solo relevante si el producto tiene `colores` y/o `tallas`: una fila por
+  // variante (color solo, talla sola, o la combinación de ambos) con su
   // cantidad. Cuando viene no vacío, `stock` se recalcula server-side como
   // la suma de estas filas (ver API) -- el admin no lo edita a mano en ese caso.
   colorStocks: z
     .array(
       z.object({
-        colorName: z.string().min(1),
+        colorName: z.string().default(''),
+        talla: z.string().default(''),
         stock: z.number().int().min(0),
       })
     )
@@ -93,6 +99,8 @@ export const leadSchema = z.object({
         // descontar la fila específica de ProductColorStock en vez de
         // siempre el agregado del producto.
         colorName: z.string().max(100).optional(),
+        // Talla elegida en el carrito, si el producto tiene tallas.
+        talla: z.string().max(50).optional(),
         price: z.number().nonnegative().max(999999),
         quantity: z.number().int().positive().max(999),
       })

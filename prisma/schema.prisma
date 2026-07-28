@@ -104,6 +104,11 @@ model Product {
   // (ver lib/product-colors.ts). Opcional en la práctica: un producto sin
   // variantes de color guarda "".
   colores String
+  // Tallas del producto serializadas como "38,39,40,41" o "S,M,L,XL" (ver
+  // lib/product-sizes.ts) -- texto libre, numérico o letra, sin relación con
+  // `colores`: un producto puede tener talla, color, ambos o ninguno.
+  // Opcional en la práctica: un producto sin tallas guarda "".
+  tallas String @default("")
 
   views     Int      @default(0)
   isActive  Boolean  @default(true)
@@ -138,19 +143,25 @@ model Product {
   @@map("products")
 }
 
-// Stock por color, solo para productos que tienen `colores` definido (ver
-// lib/product-colors.ts). `colorName` referencia el nombre del color tal
-// cual está en el string serializado -- por nombre, no por índice, para no
-// romperse si el admin reordena los colores. Un producto sin colores no usa
-// esta tabla: su stock vive directo en `Product.stock`.
+// Stock por variante -- combinación de color y/o talla, para productos que
+// tienen `colores` y/o `tallas` definidos (ver lib/product-colors.ts,
+// lib/product-sizes.ts). `colorName`/`talla` referencian el nombre tal cual
+// está en el string serializado del producto -- por nombre, no por índice,
+// para no romperse si el admin reordena los colores/tallas.
+//
+// Una fila puede representar: un color solo (talla ""), una talla sola
+// (colorName ""), o una combinación puntual de ambos -- según qué tenga el
+// producto. Un producto sin colores NI tallas no usa esta tabla: su stock
+// vive directo en `Product.stock`.
 model ProductColorStock {
   id        String  @id @default(cuid())
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  colorName String
+  colorName String  @default("")
+  talla     String  @default("")
   stock     Int     @default(0)
 
-  @@unique([productId, colorName])
+  @@unique([productId, colorName, talla])
   @@map("product_color_stock")
 }
 

@@ -7,23 +7,24 @@ import bcrypt from 'bcryptjs';
 import prisma from './prisma';
 import { STORE_CONFIG } from './store-config';
 import { checkRateLimit, getClientIp } from './rate-limit';
+import { getAdminCredentials, isAllowedAdminEmail } from './admin-accounts';
 
 // Login con correo y contraseña, alternativo a Google -- gateado por
 // STORE_CONFIG.permitirLoginConCredenciales (por cliente, ver
-// store-config.ts) Y por tener ADMIN_LOGIN_EMAIL/ADMIN_PASSWORD_HASH
-// cargadas. Si falta cualquiera de las dos cosas, el provider ni se
-// registra: no hay superficie de ataque extra por accidente en un cliente
-// que no pidió esta opción.
+// store-config.ts) Y por tener al menos un admin cargado en
+// ADMIN_CREDENTIALS (ver lib/admin-accounts.ts, soporta varios). Si falta
+// cualquiera de las dos cosas, el provider ni se registra: no hay superficie
+// de ataque extra por accidente en un cliente que no pidió esta opción.
 //
-// La contraseña NUNCA se guarda en texto plano -- ADMIN_PASSWORD_HASH es un
-// hash de bcrypt (generado una sola vez, ver .env.example). Así, alguien con
-// acceso de lectura a las env vars de Vercel ve un hash, no la contraseña
-// real. La comparación usa bcrypt.compare(), que además es resistente a
-// ataques de timing (a diferencia de comparar strings con ===).
+// La contraseña NUNCA se guarda en texto plano -- cada entrada de
+// ADMIN_CREDENTIALS lleva un hash de bcrypt (generado una sola vez, ver
+// .env.example). Así, alguien con acceso de lectura a las env vars de Vercel
+// ve un hash, no la contraseña real. La comparación usa bcrypt.compare(),
+// que además es resistente a ataques de timing (a diferencia de comparar
+// strings con ===).
+const adminCredentials = getAdminCredentials();
 const credentialsLoginEnabled =
-  STORE_CONFIG.permitirLoginConCredenciales &&
-  !!process.env.ADMIN_LOGIN_EMAIL &&
-  !!process.env.ADMIN_PASSWORD_HASH;
+  STORE_CONFIG.permitirLoginConCredenciales && adminCredentials.length > 0;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -36,9 +37,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       ? [
           Credentials({
             id: 'credentials',
-            name: 'Correo y contraseña',
+            name: 'Usuario y contraseña',
+            // "usuario" (no "email"): el identificador de cada fila de
+            // ADMIN_CREDENTIALS no tiene por qué ser un correo real -- sirve
+            // tanto para un admin real (su email) como para una cuenta de
+            // prueba con un usuario simple (ej. "diego_prueba"), ya que la
+            // comparación es un simple match de string, no una validación de
+            // formato de email.
             credentials: {
-              email: { label: 'Correo', type: 'email' },
+              usuario: { label: 'Usuario o correo', type: 'text' },
               password: { label: 'Contraseña', type: 'password' },
             },
             async authorize(credentials, request) {
@@ -49,21 +56,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               const { allowed } = checkRateLimit(`admin-login:${ip}`, 5, 15 * 60 * 1000);
               if (!allowed) return null;
 
-              const email = credentials?.email;
+              const usuario = credentials?.usuario;
               const password = credentials?.password;
-              if (typeof email !== 'string' || typeof password !== 'string') {
+              if (typeof usuario !== 'string' || typeof password !== 'string') {
                 return null;
               }
 
-              if (email !== process.env.ADMIN_LOGIN_EMAIL) return null;
-
-              const valid = await bcrypt.compare(
-                password,
-                process.env.ADMIN_PASSWORD_HASH!
+              const account = adminCredentials.find(
+                c => c.email === usuario.trim().toLowerCase()
               );
+              if (!account) return null;
+
+              const valid = await bcrypt.compare(password, account.passwordHash);
               if (!valid) return null;
 
-              return { id: 'admin-credentials', name: 'Administrador', email };
+              // Auth.js/Prisma exigen un `email` en el objeto de usuario --
+              // si el identificador de esta cuenta no tiene forma de email
+              // (ej. "diego_prueba"), se le agrega un dominio interno ficticio
+              // solo para satisfacer ese requisito; nunca se usa para enviar
+              // correos ni se muestra tal cual en ningún lado sensible.
+              const email = account.email.includes('@')
+                ? account.email
+                : `${account.email}@admin.local`;
+
+              return {
+                id: `admin-credentials:${account.email}`,
+                name: 'Administrador',
+                email,
+              };
             },
           }),
         ]
@@ -73,11 +93,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: '/auth/signin' },
   callbacks: {
     // Dos caminos de acceso, ambos con acceso completo (no hay roles ni tabla
-    // de permisos): (1) Google, solo el email configurado en ALLOWED_ADMIN_EMAIL;
-    // (2) credenciales de prueba, ya validadas dentro de authorize() arriba.
+    // de permisos): (1) Google, cualquier email de ALLOWED_ADMIN_EMAILS
+    // (lista, ver lib/admin-accounts.ts); (2) credenciales, ya validadas
+    // dentro de authorize() arriba (busca el email en ADMIN_CREDENTIALS).
     async signIn({ user, account }) {
       if (account?.provider === 'credentials') return true;
-      return user.email === process.env.ALLOWED_ADMIN_EMAIL;
+      return isAllowedAdminEmail(user.email);
     },
   },
 });

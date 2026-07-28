@@ -67,6 +67,20 @@ export function formatDateTime(date: Date | string): string {
   }).format(dateObj);
 }
 
+// Formato "DD/MM/AAAA - HH:mm" para las columnas de auditoría (fecha de
+// creación/edición) en las tablas del admin -- distinto de formatDateTime
+// (en inglés, usado en /admin/leads) porque acá se pidió explícitamente ese
+// formato puntual.
+export function formatAdminDateTime(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const year = dateObj.getFullYear();
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} - ${hours}:${minutes}`;
+}
+
 // Mapa explícito de acentos/eñes en vez de un regex por rango Unicode: evita
 // cualquier ambigüedad de codificación en el fuente y es fácil de auditar a
 // simple vista. Sin esto, "Electrónica"/"Decoración" generaban slugs rotos

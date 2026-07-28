@@ -4,7 +4,8 @@ import { auth } from '@/lib/auth';
 
 // Guardián de admin: si no hay sesión, no entra a /admin ni a /api/admin.
 // El callback signIn en lib/auth.ts ya garantiza que la única sesión
-// posible es la del email en ALLOWED_ADMIN_EMAIL.
+// posible es la de un email en ALLOWED_ADMIN_EMAILS o de un admin en
+// ADMIN_CREDENTIALS (ver lib/admin-accounts.ts).
 //
 // Además, en TODA ruta (no solo /admin) reenvía la ruta pedida como header
 // `x-pathname`: es la forma estándar de que un Server Component como

@@ -45,6 +45,7 @@ export function CartCheckout({
         items.map(item => ({
           name: item.product.name,
           colorName: item.colorName,
+          talla: item.talla,
           quantity: item.quantity,
           price: item.product.price,
         })),
@@ -67,6 +68,7 @@ export function CartCheckout({
           productId: item.productId,
           name: item.product.name,
           colorName: item.colorName,
+          talla: item.talla,
           price: item.product.price,
           quantity: item.quantity,
         })),
@@ -86,7 +88,7 @@ export function CartCheckout({
         <div className="space-y-4 lg:col-span-2">
           {items.map(item => (
             <div
-              key={`${item.productId}-${item.colorName ?? ''}`}
+              key={`${item.productId}-${item.colorName ?? ''}-${item.talla ?? ''}`}
               className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center"
             >
               <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
@@ -106,9 +108,14 @@ export function CartCheckout({
                 >
                   {item.product.name}
                 </Link>
-                {item.colorName && (
+                {(item.colorName || item.talla) && (
                   <p className="text-xs text-muted-foreground">
-                    Color: {item.colorName}
+                    {[
+                      item.colorName && `Color: ${item.colorName}`,
+                      item.talla && `Talla: ${item.talla}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </p>
                 )}
                 <p className="mt-1 font-semibold">
@@ -121,7 +128,7 @@ export function CartCheckout({
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    updateQuantity(item.productId, item.quantity - 1, item.colorName)
+                    updateQuantity(item.productId, item.quantity - 1, item.colorName, item.talla)
                   }
                   disabled={item.quantity <= 1}
                 >
@@ -132,7 +139,7 @@ export function CartCheckout({
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    updateQuantity(item.productId, item.quantity + 1, item.colorName)
+                    updateQuantity(item.productId, item.quantity + 1, item.colorName, item.talla)
                   }
                 >
                   <Plus className="h-4 w-4" />
@@ -146,7 +153,7 @@ export function CartCheckout({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => removeItem(item.productId, item.colorName)}
+                  onClick={() => removeItem(item.productId, item.colorName, item.talla)}
                   className="text-red-600 hover:text-red-700"
                 >
                   <Trash2 className="mr-1 h-4 w-4" />

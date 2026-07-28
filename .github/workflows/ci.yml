@@ -50,7 +50,7 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_ci
       NEXTAUTH_SECRET: ci-secret-${{ github.run_id }}
       NEXTAUTH_URL: http://localhost:3000
-      ALLOWED_ADMIN_EMAIL: admin@ci.local
+      ALLOWED_ADMIN_EMAILS: admin@ci.local
       GOOGLE_CLIENT_ID: ci-placeholder
       GOOGLE_CLIENT_SECRET: ci-placeholder
       SUPABASE_URL: https://ci-placeholder.supabase.co
@@ -61,9 +61,9 @@ jobs:
       SMTP_PASS: ci-placeholder
       CONTACT_EMAIL_TO: ci@ci.local
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      # Sin ADMIN_LOGIN_EMAIL/ADMIN_PASSWORD_HASH: el login con credenciales
-      # se queda deshabilitado también en CI, igual que en un cliente que no
-      # lo pidió (STORE_CONFIG.permitirLoginConCredenciales).
+      # Sin ADMIN_CREDENTIALS: el login con correo y contraseña se queda
+      # deshabilitado también en CI, igual que en un cliente que no lo pidió
+      # (STORE_CONFIG.permitirLoginConCredenciales).
 
     steps:
       - uses: actions/checkout@v4

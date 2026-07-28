@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { AuthError } from 'next-auth';
 import { signIn } from '@/lib/auth';
 import { STORE_CONFIG } from '@/lib/store-config';
+import { getAdminCredentials } from '@/lib/admin-accounts';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -20,7 +21,7 @@ async function signInWithCredentials(formData: FormData) {
   'use server';
   try {
     await signIn('credentials', {
-      email: formData.get('email'),
+      usuario: formData.get('usuario'),
       password: formData.get('password'),
       redirectTo: '/admin',
     });
@@ -48,7 +49,7 @@ export default async function SignInPage({
   // confundir/invitar a probar un login que siempre va a fallar).
   const credentialsLoginEnabled =
     STORE_CONFIG.permitirLoginConCredenciales &&
-    !!process.env.ADMIN_LOGIN_EMAIL;
+    getAdminCredentials().length > 0;
   return (
     <div className="flex min-h-screen">
       {/* Panel de imagen: solo visible md+, la imagen y el overlay no
@@ -76,8 +77,8 @@ export default async function SignInPage({
           <h2 className="text-xl font-bold">Panel de Administrador</h2>
           <p className="text-sm text-muted-foreground">
             {credentialsLoginEnabled
-              ? 'Entra con el email autorizado o con tu correo y contraseña'
-              : 'Entra con el email autorizado'}
+              ? 'Entra con un email autorizado o con tu usuario y contraseña'
+              : 'Entra con un email autorizado'}
           </p>
         </div>
 
@@ -103,20 +104,20 @@ export default async function SignInPage({
             <div className="relative flex items-center">
               <div className="flex-1 border-t" />
               <span className="px-3 text-xs text-muted-foreground">
-                o correo y contraseña
+                o usuario y contraseña
               </span>
               <div className="flex-1 border-t" />
             </div>
 
             <form action={signInWithCredentials} className="space-y-3">
               <div className="space-y-1">
-                <Label htmlFor="email">Correo</Label>
+                <Label htmlFor="usuario">Usuario o correo</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
+                  id="usuario"
+                  name="usuario"
+                  type="text"
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                 />
               </div>
               <div className="space-y-1">

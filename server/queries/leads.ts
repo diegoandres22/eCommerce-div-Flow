@@ -7,6 +7,8 @@ export interface LeadItem {
   // Color elegido en el carrito (si el producto tiene colores) -- ver
   // app/api/admin/leads/[id]/route.ts para el descuento por color.
   colorName?: string;
+  // Talla elegida en el carrito (si el producto tiene tallas).
+  talla?: string;
   price: number;
   quantity: number;
 }

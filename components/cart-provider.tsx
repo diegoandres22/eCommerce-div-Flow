@@ -14,27 +14,48 @@ export interface CartProduct {
   // app/api/admin/leads/[id]/route.ts) en vez de descontar siempre del
   // agregado del producto.
   colorName?: string;
+  // Talla elegida en la ficha de producto, si el producto tiene tallas
+  // definidas -- independiente del color (puede venir con uno, el otro, los
+  // dos, o ninguno). A diferencia del color, no afecta el descuento de
+  // stock (no hay stock por talla, solo por color o agregado).
+  talla?: string;
 }
 
 export interface CartItem {
   productId: string;
   colorName?: string;
+  talla?: string;
   quantity: number;
   product: CartProduct;
 }
 
-// Dos colores del mismo producto son líneas de carrito distintas -- se
-// identifican por la combinación productId + colorName, no solo por
-// productId (antes de sumar colores, productId alcanzaba como identidad).
-function sameLine(item: CartItem, productId: string, colorName?: string) {
-  return item.productId === productId && (item.colorName ?? undefined) === (colorName ?? undefined);
+// Dos combinaciones distintas de color/talla del mismo producto son líneas
+// de carrito distintas -- se identifican por productId + colorName + talla,
+// no solo por productId (antes de sumar colores, productId alcanzaba como
+// identidad).
+function sameLine(
+  item: CartItem,
+  productId: string,
+  colorName?: string,
+  talla?: string
+) {
+  return (
+    item.productId === productId &&
+    (item.colorName ?? undefined) === (colorName ?? undefined) &&
+    (item.talla ?? undefined) === (talla ?? undefined)
+  );
 }
 
 interface CartContextType {
   items: CartItem[];
   addItem: (product: CartProduct, quantity?: number) => void;
-  removeItem: (productId: string, colorName?: string) => void;
-  updateQuantity: (productId: string, quantity: number, colorName?: string) => void;
+  removeItem: (productId: string, colorName?: string, talla?: string) => void;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    colorName?: string,
+    talla?: string
+  ) => void;
   clearCart: () => void;
   totalAmount: number;
   totalItems: number;
@@ -70,33 +91,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = (product: CartProduct, quantity = 1) => {
     setItems(prev => {
-      const existing = prev.find(i => sameLine(i, product.id, product.colorName));
+      const existing = prev.find(i =>
+        sameLine(i, product.id, product.colorName, product.talla)
+      );
       if (existing) {
         return prev.map(i =>
-          sameLine(i, product.id, product.colorName)
+          sameLine(i, product.id, product.colorName, product.talla)
             ? { ...i, quantity: i.quantity + quantity }
             : i
         );
       }
       return [
         ...prev,
-        { productId: product.id, colorName: product.colorName, quantity, product },
+        {
+          productId: product.id,
+          colorName: product.colorName,
+          talla: product.talla,
+          quantity,
+          product,
+        },
       ];
     });
   };
 
-  const removeItem = (productId: string, colorName?: string) => {
-    setItems(prev => prev.filter(i => !sameLine(i, productId, colorName)));
+  const removeItem = (productId: string, colorName?: string, talla?: string) => {
+    setItems(prev => prev.filter(i => !sameLine(i, productId, colorName, talla)));
   };
 
   const updateQuantity = (
     productId: string,
     quantity: number,
-    colorName?: string
+    colorName?: string,
+    talla?: string
   ) => {
     if (quantity < 1) return;
     setItems(prev =>
-      prev.map(i => (sameLine(i, productId, colorName) ? { ...i, quantity } : i))
+      prev.map(i =>
+        sameLine(i, productId, colorName, talla) ? { ...i, quantity } : i
+      )
     );
   };
 

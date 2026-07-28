@@ -143,10 +143,12 @@ export default async function LeadsPage({
                 </TableCell>
                 <TableCell>
                   {lead.items
-                    .map(
-                      item =>
-                        `${item.name}${item.colorName ? ` (${item.colorName})` : ''} x${item.quantity}`
-                    )
+                    .map(item => {
+                      const details = [item.colorName, item.talla]
+                        .filter(Boolean)
+                        .join(', ');
+                      return `${item.name}${details ? ` (${details})` : ''} x${item.quantity}`;
+                    })
                     .join(', ')}
                 </TableCell>
                 <TableCell className="text-right font-medium">
