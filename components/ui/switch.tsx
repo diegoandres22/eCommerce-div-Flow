@@ -33,7 +33,12 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         onClick={() => onCheckedChange(!checked)}
         className={cn(
           'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed',
-          checked ? 'bg-primary' : 'bg-input',
+          // bg-primary-accent (no bg-primary): el track "on" es un fondo
+          // sólido sin texto encima que lo pareje -- si el color de marca es
+          // oscuro, en dark mode quedaba casi del mismo tono que el fondo de
+          // la card contenedora, y el switch encendido se volvía difícil de
+          // distinguir del apagado a simple vista.
+          checked ? 'bg-primary-accent' : 'bg-input',
           loading && 'opacity-70',
           className
         )}

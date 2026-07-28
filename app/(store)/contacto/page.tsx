@@ -50,7 +50,7 @@ export default function ContactoPage() {
           <div className="space-y-6 lg:col-span-2">
             {highlights.map(item => (
               <div key={item.title} className="flex gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-accent/10 text-primary-accent">
                   <item.icon className="h-5 w-5" />
                 </div>
                 <div>

@@ -12,7 +12,7 @@ export function TrustBadges() {
     <div className="grid grid-cols-1 gap-3 rounded-lg border bg-muted/40 p-4 sm:grid-cols-3">
       {badges.map(badge => (
         <div key={badge.label} className="flex items-center gap-2 text-sm">
-          <badge.icon className="h-5 w-5 shrink-0 text-primary" />
+          <badge.icon className="h-5 w-5 shrink-0 text-primary-accent" />
           <span>{badge.label}</span>
         </div>
       ))}

@@ -79,7 +79,7 @@ export function WishlistDrawer() {
                     href={`/products/${item.id}`}
                     onClick={() => setIsOpen(false)}
                   >
-                    <h4 className="truncate text-sm font-medium transition-colors hover:text-primary">
+                    <h4 className="truncate text-sm font-medium transition-colors hover:text-primary-accent">
                       {item.name}
                     </h4>
                   </Link>

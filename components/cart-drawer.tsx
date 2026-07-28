@@ -114,7 +114,7 @@ export function CartDrawer() {
                       href={`/products/${item.productId}`}
                       onClick={() => setIsOpen(false)}
                     >
-                      <h4 className="truncate text-sm font-medium transition-colors hover:text-primary">
+                      <h4 className="truncate text-sm font-medium transition-colors hover:text-primary-accent">
                         {item.product.name}
                       </h4>
                     </Link>

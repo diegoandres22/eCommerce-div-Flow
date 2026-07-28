@@ -49,7 +49,7 @@ export function ContactForm() {
   if (sent) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border bg-card p-10 text-center">
-        <CheckCircle2 className="h-10 w-10 text-primary" />
+        <CheckCircle2 className="h-10 w-10 text-primary-accent" />
         <h3 className="text-lg font-semibold">¡Solicitud enviada!</h3>
         <p className="text-sm text-muted-foreground">
           Te contactaremos pronto para asesorarte.

@@ -104,7 +104,7 @@ export function CartCheckout({
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/products/${item.productId}`}
-                  className="font-medium hover:text-primary"
+                  className="font-medium hover:text-primary-accent"
                 >
                   {item.product.name}
                 </Link>

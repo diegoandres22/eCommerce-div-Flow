@@ -157,7 +157,7 @@ export function ImageDropzone({
           className={cn(
             'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors',
             dragOver
-              ? 'border-primary bg-primary/5'
+              ? 'border-primary-accent bg-primary-accent/5'
               : 'border-input hover:bg-accent/50'
           )}
         >

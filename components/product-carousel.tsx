@@ -39,7 +39,7 @@ export function ProductCarousel({
         {viewAllHref && (
           <Link
             href={viewAllHref}
-            className="flex items-center text-sm font-medium text-primary hover:underline"
+            className="flex items-center text-sm font-medium text-primary-accent hover:underline"
           >
             Ver todo
             <ArrowRight className="ml-1 h-4 w-4" />
