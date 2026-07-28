@@ -55,8 +55,21 @@
     @apply border-border;
   }
 
+  html {
+    /* Red de seguridad contra scroll horizontal en móvil (iPhone y otros):
+       cualquier elemento hijo que por error termine más ancho que el
+       viewport (ej. un botón de carrusel con offset negativo pegado al
+       borde, un contenido sin word-break) queda recortado en vez de forzar
+       scroll-x de toda la página. No afecta el scroll horizontal interno de
+       componentes puntuales (ej. la tabla de admin en
+       components/ui/table.tsx), que usan su propio overflow-auto en un
+       contenedor aparte -- esto solo aplica al eje X del documento entero. */
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
