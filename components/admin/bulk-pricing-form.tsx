@@ -209,7 +209,7 @@ export function BulkPricingForm({
             {filteredProducts.map(product => (
               <label
                 key={product.id}
-                className="flex items-center gap-3 rounded p-2 text-sm hover:bg-accent"
+                className="flex items-center gap-3 rounded p-2 text-sm hover:bg-accent hover:text-accent-foreground"
               >
                 <input
                   type="checkbox"

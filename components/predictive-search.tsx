@@ -108,7 +108,15 @@ export function PredictiveSearch() {
                 key={product.id}
                 href={`/products/${product.id}`}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 p-2 hover:bg-accent"
+                // group + group-hover en los <p> hijos (no alcanza con
+                // hover:bg-accent solo en el Link): --accent se fija al
+                // mismo hex de marca en claro/oscuro (ver lib/theme.ts), y
+                // con un acento claro, el fondo de hover en tema oscuro
+                // queda casi blanco -- el texto por defecto (blanco/casi
+                // blanco en dark mode) quedaba invisible encima. Reportado
+                // por QA: "al hacer hover en la búsqueda se pierde el
+                // texto".
+                className="group flex items-center gap-3 p-2 hover:bg-accent"
               >
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
                   <SmartImage
@@ -120,8 +128,10 @@ export function PredictiveSearch() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="truncate text-sm group-hover:text-accent-foreground">
+                    {product.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground group-hover:text-accent-foreground">
                     {formatPrice(product.price)}
                   </p>
                 </div>
@@ -132,7 +142,7 @@ export function PredictiveSearch() {
             <button
               type="button"
               onClick={goToSearchPage}
-              className="block w-full border-t p-2 text-center text-sm font-medium text-primary-accent hover:bg-accent"
+              className="block w-full border-t p-2 text-center text-sm font-medium text-primary-accent hover:bg-accent hover:text-accent-foreground"
             >
               Ver todos los resultados
             </button>

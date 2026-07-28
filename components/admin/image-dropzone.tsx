@@ -190,7 +190,7 @@ export function ImageDropzone({
             'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors',
             dragOver
               ? 'border-primary-accent bg-primary-accent/5'
-              : 'border-input hover:bg-accent/50'
+              : 'border-input hover:bg-accent/50 hover:text-accent-foreground'
           )}
         >
           {uploading ? (

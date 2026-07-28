@@ -55,7 +55,7 @@ export function ProductSizeSelector({
                 'flex h-9 min-w-9 items-center justify-center rounded-md border px-2 text-sm font-medium transition-colors',
                 selectedIndex === index
                   ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-input bg-background hover:bg-accent',
+                  : 'border-input bg-background hover:bg-accent hover:text-accent-foreground',
                 outOfStock && 'cursor-not-allowed opacity-40 line-through hover:bg-background'
               )}
             >
