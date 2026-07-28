@@ -87,8 +87,19 @@ export function ImageDropzone({
         return;
       }
 
-      if (!data.urls || data.urls.length === 0) return;
-      onChange(multiple ? [...images, ...data.urls] : [data.urls[0]]);
+      const newUrls = data.urls;
+      if (!newUrls || newUrls.length === 0) return;
+      if (multiple) {
+        onChange([...images, ...newUrls]);
+      } else {
+        // Con noUncheckedIndexedAccess, newUrls[0] tipa como
+        // `string | undefined` aunque ya se validó length > 0 arriba -- TS
+        // no infiere esa garantía de un `.length` check. Desestructurar +
+        // chequear el valor puntual sí deja que TS lo angoste a `string`
+        // dentro del bloque, sin necesitar un `as string`.
+        const [firstUrl] = newUrls;
+        if (firstUrl) onChange([firstUrl]);
+      }
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
