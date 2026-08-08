@@ -15,8 +15,11 @@ export async function logBrokenLink(path: string) {
 }
 
 export async function getTopBrokenLinks(limit = 5) {
+  // Por hits primero (la sección se llama "enlaces rotos" ordenados por
+  // frecuencia, no "últimos 404"): un enlace pisado 50 veces importa más
+  // que uno pisado una sola vez hace un minuto. lastSeenAt como desempate.
   return prisma.brokenLink.findMany({
-    orderBy: { lastSeenAt: 'desc' },
+    orderBy: [{ hits: 'desc' }, { lastSeenAt: 'desc' }],
     take: limit,
   });
 }

@@ -14,6 +14,10 @@ export function ContactForm() {
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  // Checkbox obligatorio: sin esto no hay base de consentimiento real para
+  // procesar el mensaje (ver /privacidad). No se guarda en ningún lado, solo
+  // condiciona que el botón de envío se habilite.
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -41,6 +45,7 @@ export function ContactForm() {
 
       setSent(true);
       setForm(emptyForm);
+      setConsentAccepted(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +114,29 @@ export function ContactForm() {
         />
       </div>
 
-      <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
+      <div className="flex items-start gap-2">
+        <input
+          id="consent"
+          type="checkbox"
+          checked={consentAccepted}
+          onChange={e => setConsentAccepted(e.target.checked)}
+          required
+          className="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-primary-accent"
+        />
+        <Label htmlFor="consent" className="text-xs font-normal leading-snug text-muted-foreground">
+          Acepto que mis datos se usen para responder esta solicitud, según la{' '}
+          <a href="/privacidad" target="_blank" className="text-primary-accent underline hover:no-underline">
+            Política de Privacidad
+          </a>
+          .
+        </Label>
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full gap-2"
+        disabled={isSubmitting || !consentAccepted}
+      >
         <Send className="h-4 w-4" />
         {isSubmitting ? 'Enviando...' : 'Solicitar asesoría'}
       </Button>

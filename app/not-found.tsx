@@ -8,7 +8,7 @@ import { ProductCarousel } from '@/components/product-carousel';
 import { getTopViewedProducts } from '@/server/queries/products';
 import { getTopLevelCategories } from '@/server/queries/categories';
 import { logBrokenLink } from '@/server/queries/broken-links';
-import { isPrefetchRequest, isTrackablePath } from '@/lib/route-tracking';
+import { isPrefetchRequest, isTrackablePath, isLikelyScanProbe } from '@/lib/route-tracking';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,11 +29,16 @@ export default async function NotFound() {
 
   // Fire-and-forget: registrar el 404 nunca debe retrasar ni romper el
   // render de esta página. Se descartan los prefetches silenciosos de
-  // Next.js (ver lib/route-tracking.ts) y las rutas de /admin, /api y
-  // /auth: este reporte es para links rotos que un CLIENTE de la tienda
-  // pisó de verdad, no para typos del propio administrador navegando el
-  // panel (esas siempre son "operativas", solo que mal escritas a mano).
-  if (brokenPath && isTrackablePath(brokenPath) && !isPrefetchRequest(headersList)) {
+  // Next.js (ver lib/route-tracking.ts), las rutas de /admin, /api y /auth
+  // (typos del propio administrador, no de un cliente), y los sondeos
+  // automáticos de bots buscando paneles conocidos (wp-admin, phpmyadmin,
+  // etc.) que esta tienda nunca tuvo -- eso no es un enlace roto interno.
+  if (
+    brokenPath &&
+    isTrackablePath(brokenPath) &&
+    !isPrefetchRequest(headersList) &&
+    !isLikelyScanProbe(brokenPath)
+  ) {
     void logBrokenLink(brokenPath).catch(() => {});
   }
 

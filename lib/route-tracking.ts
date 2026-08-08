@@ -30,3 +30,27 @@ export function isTrackablePath(path: string): boolean {
   if (!path) return false;
   return !EXCLUDED_PREFIXES.some(prefix => path.startsWith(prefix));
 }
+
+// Cualquier sitio público recibe sondeos automáticos constantes buscando
+// paneles de CMS/servidor conocidos (WordPress, phpMyAdmin, cPanel, etc.)
+// que esta tienda nunca tuvo. Sin este filtro, "Enlaces rotos" se llena de
+// ese ruido de internet y el dueño de la tienda termina pensando que tiene
+// un problema de navegación interna cuando no lo tiene. Solo se usa para
+// decidir qué se loguea como enlace roto -- no afecta rutas más visitadas
+// (esas son 200 reales, un sondeo nunca llega a esa tabla).
+const SCAN_PROBE_PATTERNS = [
+  'wp-admin',
+  'wp-login',
+  'wp-content',
+  'wp-includes',
+  'wordpress',
+  'phpmyadmin',
+  'administrator',
+  'cpanel',
+  'xmlrpc',
+];
+
+export function isLikelyScanProbe(path: string): boolean {
+  const lower = path.toLowerCase();
+  return SCAN_PROBE_PATTERNS.some(pattern => lower.includes(pattern));
+}
