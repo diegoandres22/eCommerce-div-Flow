@@ -65,6 +65,20 @@
        components/ui/table.tsx), que usan su propio overflow-auto en un
        contenedor aparte -- esto solo aplica al eje X del documento entero. */
     overflow-x: hidden;
+
+    /* Fix reportado por QA: al abrir el dropdown de Categorías, el drawer
+       del carrito o el de favoritos, TODA la página se "achicaba" un salto
+       visible. Causa: esos componentes son de Radix (DropdownMenu/Dialog) y
+       bloquean el scroll del body mientras están abiertos -- al ocultar la
+       scrollbar vertical, Radix mide cuánto medía y le agrega ese mismo
+       ancho como padding-right al body para que el contenido no salte...
+       pero solo mientras el overlay está abierto, así que el ancho visible
+       cambiaba entre abierto/cerrado. `scrollbar-gutter: stable` reserva ese
+       espacio SIEMPRE (haya o no scrollbar activa en ese momento), así el
+       ancho visible del documento queda constante y Radix ya no tiene nada
+       que compensar -- el salto desaparece en la raíz, sin tocar cada
+       componente que use Radix por separado. */
+    scrollbar-gutter: stable;
   }
 
   body {

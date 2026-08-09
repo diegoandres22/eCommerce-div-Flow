@@ -7,6 +7,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { AnnouncementBar } from '@/components/announcement-bar';
 import { WhatsAppFloatButton } from '@/components/whatsapp-float-button';
+import { CookieBanner } from '@/components/cookie-banner';
 import { SiteChrome } from '@/components/site-chrome';
 import { CartProvider } from '@/components/cart-provider';
 import { WishlistProvider } from '@/components/wishlist-provider';
@@ -103,6 +104,7 @@ export default function RootLayout({
                 </div>
                 <Toaster />
                 <PwaRegister />
+                <CookieBanner />
               </RecentlyViewedProvider>
             </WishlistProvider>
           </CartProvider>

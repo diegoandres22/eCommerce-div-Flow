@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import type { Product as ProductJsonLd, WithContext } from 'schema-dts';
-import { SmartImage } from '@/components/ui/smart-image';
+import { ProductGallery } from '@/components/product-gallery';
 import {
   getProductById,
   getRelatedProducts,
@@ -133,36 +133,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </nav>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="space-y-4">
-          <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-            <SmartImage
-              src={product.images[0] || '/images/placeholder.svg'}
-              alt={product.name}
-              fill
-              className="object-cover"
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
-          </div>
-          {product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.slice(1, 5).map((url, index) => (
-                <div
-                  key={url}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-muted"
-                >
-                  <SmartImage
-                    src={url}
-                    alt={`${product.name} ${index + 2}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 1024px) 25vw, 12vw"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductGallery images={product.images} productName={product.name} />
 
         <div className="space-y-6">
           <div className="flex items-start justify-between gap-4">

@@ -19,6 +19,21 @@ export function Footer() {
           Solicitar asesoría tecnológica
         </Link>
 
+        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <Link href="/privacidad" className="hover:text-primary-accent">
+            Privacidad
+          </Link>
+          <Link href="/terminos" className="hover:text-primary-accent">
+            Términos
+          </Link>
+          <Link href="/aviso-legal" className="hover:text-primary-accent">
+            Aviso legal
+          </Link>
+          <Link href="/cookies" className="hover:text-primary-accent">
+            Cookies
+          </Link>
+        </nav>
+
         {/* Redes y datos de contacto adicionales: todo opcional, solo se
             renderiza lo que el cliente cargó en lib/store-config.ts. */}
         {hasSocial && (
