@@ -2,8 +2,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { bulkPricingSchema } from '@/lib/validators';
+import { requireAdminSession } from '@/lib/api-auth';
 
 export async function PATCH(req: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const body = await req.json();
   const parsed = bulkPricingSchema.safeParse(body);
 

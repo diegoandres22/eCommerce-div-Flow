@@ -169,7 +169,7 @@ python scripts/your-script.py
 
 For more information:
 - [../README.md](../README.md) - Main documentation
-- [../docs/setup/DEV_SETUP.md](../docs/setup/DEV_SETUP.md) - Development setup
+- [../docs/GUIA_IMPLEMENTACION.md](../docs/GUIA_IMPLEMENTACION.md) - Development setup
 - [../Makefile](../Makefile) - Available make commands
 
 ---

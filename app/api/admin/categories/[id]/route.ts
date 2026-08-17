@@ -2,11 +2,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { categorySchema } from '@/lib/validators';
+import { requireAdminSession } from '@/lib/api-auth';
+import type { Prisma } from '@prisma/client';
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const body = await req.json();
   const parsed = categorySchema.partial().safeParse(body);
@@ -46,13 +51,14 @@ export async function PATCH(
   }
 
   if (parsed.data.slug || parsed.data.name) {
+    const duplicateClauses: Prisma.CategoryWhereInput[] = [];
+    if (parsed.data.name) duplicateClauses.push({ name: parsed.data.name });
+    if (parsed.data.slug) duplicateClauses.push({ slug: parsed.data.slug });
+
     const duplicate = await prisma.category.findFirst({
       where: {
         NOT: { id },
-        OR: [
-          parsed.data.name ? { name: parsed.data.name } : undefined,
-          parsed.data.slug ? { slug: parsed.data.slug } : undefined,
-        ].filter(Boolean) as any,
+        OR: duplicateClauses,
       },
     });
     if (duplicate) {
@@ -74,6 +80,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const [productsCount, childrenCount] = await Promise.all([
     prisma.product.count({

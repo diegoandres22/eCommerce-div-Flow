@@ -10,7 +10,7 @@ MVP de eCommerce **single-tenant** con checkout por WhatsApp: sin pasarela de pa
 
 El cliente arma su pedido en el carrito y lo envía por WhatsApp con un mensaje preformateado; la venta se cierra por conversación directa. La plataforma incluye tienda pública, panel de administración completo y un módulo de control de stock opcional.
 
-📄 **Documentación completa** (arquitectura, modelo de datos, flujos de negocio, guía de desarrollador y checklist de replicación a un cliente nuevo): [`docs/Documentacion_Tecnica_y_de_Producto.docx`](docs/Documentacion_Tecnica_y_de_Producto.docx) y [`CLAUDE.md`](CLAUDE.md).
+📄 **Documentación completa**: [`docs/DOCUMENTACION_TECNICA.md`](docs/DOCUMENTACION_TECNICA.md) (arquitectura, modelo de datos, flujos de negocio, seguridad) y [`docs/GUIA_IMPLEMENTACION.md`](docs/GUIA_IMPLEMENTACION.md) (checklist de replicación a un cliente nuevo). `CLAUDE.md` es el registro cronológico detallado de cada cambio.
 
 ---
 
@@ -144,7 +144,7 @@ docker-compose up --build
 
 ## 🏗️ Implementar para un cliente nuevo
 
-La arquitectura es single-tenant: cada cliente es un clon independiente con su propia base de datos y variables de entorno. El checklist completo (branding, logos, credenciales, despliegue, verificación) está en la documentación técnica ([`docs/Documentacion_Tecnica_y_de_Producto.docx`](docs/Documentacion_Tecnica_y_de_Producto.docx), sección 12).
+La arquitectura es single-tenant: cada cliente es un clon independiente con su propia base de datos y variables de entorno. El checklist completo (branding, logos, credenciales, despliegue, verificación) está en [`docs/GUIA_IMPLEMENTACION.md`](docs/GUIA_IMPLEMENTACION.md).
 
 ## 📄 Licencia
 

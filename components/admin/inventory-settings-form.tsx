@@ -103,7 +103,7 @@ export function InventorySettingsForm({
               Con el módulo activo, las ventas confirmadas desde{' '}
               <strong>/admin/leads</strong> descuentan stock automáticamente.
               El descuento nunca es automático al pedir por WhatsApp -- ver el
-              detalle en docs/analysis/PROPUESTA_MODULO_STOCK.md.
+              detalle en docs/DOCUMENTACION_TECNICA.md.
             </p>
           )}
         </CardContent>

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { leadActionSchema } from '@/lib/validators';
+import { requireAdminSession } from '@/lib/api-auth';
 import type { LeadItem } from '@/server/queries/leads';
 import type { Prisma } from '@prisma/client';
 
@@ -78,14 +79,17 @@ async function applyStockDelta(tx: Tx, item: LeadItem, delta: number) {
 }
 
 // Único punto donde el módulo de stock efectivamente descuenta o repone
-// inventario -- ver la decisión en docs/analysis/PROPUESTA_MODULO_STOCK.md
-// (sección 4): como no hay pasarela de pago, el clic en "Pedir por WhatsApp"
+// inventario -- ver docs/DOCUMENTACION_TECNICA.md (sección 6, "Módulo de
+// stock"): como no hay pasarela de pago, el clic en "Pedir por WhatsApp"
 // solo crea un Lead `pendiente`; acá es donde el admin confirma que la venta
 // realmente se cerró (descuenta) o la rechaza/revierte (sin efecto o repone).
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const body = await req.json();
   const parsed = leadActionSchema.safeParse(body);

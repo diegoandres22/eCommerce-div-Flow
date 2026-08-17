@@ -3,8 +3,12 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { productSchema } from '@/lib/validators';
 import { resolveProductStock } from '@/lib/stock';
+import { requireAdminSession } from '@/lib/api-auth';
 
 export async function GET() {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const products = await prisma.product.findMany({
     include: {
       category: { select: { id: true, name: true } },
@@ -17,6 +21,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const body = await req.json();
   const parsed = productSchema.safeParse(body);
 

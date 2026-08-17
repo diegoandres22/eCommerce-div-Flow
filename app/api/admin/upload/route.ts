@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { getSupabaseAdmin, PRODUCT_IMAGES_BUCKET } from '@/lib/supabase-admin';
+import { requireAdminSession } from '@/lib/api-auth';
 
 // Protegido por middleware.ts (app/api/admin/*). Recibe uno o más archivos
 // (FormData, campo "files"), los sube a Supabase Storage y devuelve las
@@ -33,6 +34,9 @@ const MAX_SIZE_BYTES = 4 * 1024 * 1024;
 // faltantes, bucket sin permisos, red caída) devuelve JSON válido siempre.
 export async function POST(req: Request) {
   try {
+    const unauthorized = await requireAdminSession();
+    if (unauthorized) return unauthorized;
+
     // Validación temprana y explícita de las env vars -- mejor un 500 con
     // mensaje claro ("faltan las credenciales de Supabase") que dejar que
     // @supabase/supabase-js tire una excepción genérica de "supabaseUrl is

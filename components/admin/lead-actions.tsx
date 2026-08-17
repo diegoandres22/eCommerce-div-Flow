@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
 // Único lugar de la UI donde se dispara el descuento/reposición de stock
-// (PATCH /api/admin/leads/[id]) -- ver docs/analysis/PROPUESTA_MODULO_STOCK.md
-// sección 4. "Confirmar" descuenta, "Rechazar" en un pendiente no toca stock,
+// (PATCH /api/admin/leads/[id]) -- ver docs/DOCUMENTACION_TECNICA.md sección 6.
+// "Confirmar" descuenta, "Rechazar" en un pendiente no toca stock,
 // "Revertir" en uno ya confirmado repone lo que se había descontado.
 export function LeadActions({ id, estado }: { id: string; estado: LeadEstado }) {
   const [isLoading, setIsLoading] = useState(false);
