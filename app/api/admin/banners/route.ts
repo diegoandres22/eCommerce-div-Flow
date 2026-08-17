@@ -2,8 +2,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { bannerSchema } from '@/lib/validators';
+import { requireAdminSession } from '@/lib/api-auth';
 
 export async function GET() {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const banners = await prisma.banner.findMany({
     orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
   });
@@ -11,6 +15,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const body = await req.json();
   const parsed = bannerSchema.safeParse(body);
 
